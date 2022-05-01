@@ -1,0 +1,5 @@
+__description__ = "Manage docker containers"
+__author__ = "Wiselab, CMU"
+__email__ = "wiselab@icloud.com"
+__version__ = "0.0.1"
+__license__ = "BSD 3-Clause License"

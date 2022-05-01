@@ -1,0 +1,4 @@
+logzero
+dynaconf
+pymitter
+paho-mqtt
