@@ -2,3 +2,5 @@ logzero
 dynaconf
 pymitter
 paho-mqtt
+docker
+bs4

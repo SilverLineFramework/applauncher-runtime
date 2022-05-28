@@ -15,3 +15,9 @@ class MissingField(RuntimeException):
 
     def __init__(self, data):
         super().__init__("missing field", data)
+
+class ProgramFileException(RuntimeException):
+    """Error copying/downloading/... a file."""
+
+    def __init__(self, data):
+        super().__init__("error getting program file", data)

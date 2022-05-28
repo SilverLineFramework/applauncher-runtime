@@ -8,7 +8,7 @@ import atexit
 from common.messages import FileTypes, Result
 from .runtime import Runtime
 from common.config import settings
-from mqtt.interface import PubsubHandler
+from mqtt.pubsub_proto import PubsubHandler
 
 class RuntimeMngr(PubsubHandler):
     """Runtime Manager; handles topic messages"""
@@ -24,7 +24,7 @@ class RuntimeMngr(PubsubHandler):
         atexit.register(self.exit_handler)
 
     def exit_handler(self):
-        if self.lastwill_msg:
+        if hasattr(self, lastwill_msg):
             self.mqttc.pubsub_message_publish(self.lastwill_msg)
             time.sleep(.5) # need time to publish
 

@@ -1,14 +1,14 @@
 run: venv
-		$(VENV)/python src/main.py $(ARGS)
+		$(VENV)/python3 src/main.py $(ARGS)
 
 tests: venv
-		$(VENV)/python tests/test.py
+		$(VENV)/python3 src/tests/test.py
 
 show-req: venv
-		$(VENV)/pip freeze
+		$(VENV)/pip3 freeze
 
 freeze: venv
-		$(VENV)/pip freeze > requirements.txt
+		$(VENV)/pip3 freeze > requirements.txt
 
 include Makefile.venv
 Makefile.venv:

@@ -1,6 +1,6 @@
 # launcher config; what starts modules
 launcher:
-  class: launcher.docker.py
+  class: launcher.docker.DockerLauncher # instanciate a Launcher-derived class from: module.submodule.Class
   apis: python:python3 # space-separated list e.g.: python:python3 wasm:wasi_preview_1
   # launcher-specific (docker.launcher.py) arguments
   args:
@@ -43,5 +43,9 @@ mqtt:
   port: 8883
   ssl: true
 
-store:
-  url: https://arena-dev1.conix.io/store
+# where we keep program files
+repository:
+  class: launcher.filestore-repo.FilestoreRepo # instanciate a Repo class from: module.submodule.Class
+  # repo-specific args
+  args:
+    url: https://arena-dev1.conix.io/store

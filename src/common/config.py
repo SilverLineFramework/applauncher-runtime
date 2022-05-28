@@ -17,8 +17,8 @@ settings = Dynaconf(
         # topic list is required (can't check particular topics due to template substitution ?)
         Validator('topics', must_exist=True),
 
-        # store required settings
-        Validator('store.url', must_exist=True),
+        # repository required settings
+        Validator('repository.class', 'repository.args', must_exist=True),
 
         # laucher required settings
         Validator('launcher.class', 'launcher.apis', 'launcher.args', must_exist=True),

@@ -13,7 +13,7 @@ from common.messages import ErrorMsg
 from common.exception import RuntimeException
 
 from .mqtt_msg import MQTTMessage
-from .interface import PubsubClient
+from .pubsub_proto import PubsubClient
 
 class MQTTClient(paho.Client, PubsubClient):
     """MQTT client class extending mqtt.Client. Implements PubsubClient methods.

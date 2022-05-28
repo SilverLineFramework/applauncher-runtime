@@ -21,11 +21,14 @@ def main(args):
     # Set a minimum log level
     logzero.loglevel(logzero.INFO)
 
-    logger.info(settings.runtime)
-    exit(0)
+    #logger.info(settings.runtime)
+
     # create launcher instance from settings option
-    Launcher = getattr(importlib.import_module(settings.get()), "MyClass")
-    rtmngr = RuntimeMngr()
+    (launcher_module, launcher_class) = settings.get('launcher.class').rsplit('.', 1)
+    logger.debug("[RuntimeMngr] Importing {}.{}".format(launcher_module, launcher_class))
+    LauncherClass = getattr(importlib.import_module(launcher_module), launcher_class)
+    launcher = LauncherClass()
+    rtmngr = RuntimeMngr(launcher)
 
     # create runtime mngr instance
     rtmngr = RuntimeMngr()
