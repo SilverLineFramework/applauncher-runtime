@@ -2,7 +2,7 @@ import unittest
 from common.config import settings
 import os
 
-from launcher.program_files import FileStoreBuilder
+from launcher.filestore_builder import FileStoreBuilder
 from launcher.file_action import FileInfo
 
 class TestRepo(unittest.TestCase):
