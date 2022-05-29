@@ -2,7 +2,7 @@ run: venv
 		$(VENV)/python3 src/main.py $(ARGS)
 
 tests: venv
-		$(VENV)/python3 src/tests/test.py
+		$(VENV)/python3 src/test/run_tests.py
 
 show-req: venv
 		$(VENV)/pip3 freeze
