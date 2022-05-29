@@ -25,18 +25,18 @@ class RuntimeMngr(PubsubHandler):
 
     def exit_handler(self):
         if hasattr(self, lastwill_msg):
-            self.mqttc.pubsub_message_publish(self.lastwill_msg)
+            self.pubsub_client.pubsub_message_publish(self.lastwill_msg)
             time.sleep(.5) # need time to publish
 
     def pubsub_connected(self, client):
-        self.mqttc = client
+        self.pubsub_client = client
 
         # set last will; sent if we dont disconnect properly
         self.lastwill_msg = self.rt.unregister_req()
-        self.mqttc.pubsub_last_will_set(self.lastwill_msg)
+        self.pubsub_client.pubsub_last_will_set(self.lastwill_msg)
 
         # subscribe to reg to receive registration confirmation
-        self.mqttc.pubsub_message_handler_add(self.rt.reg_topic, self.reg)
+        self.pubsub_client.pubsub_message_handler_add(self.rt.reg_topic, self.reg)
 
         # start a thread to send registration messages once we are connected
         self.reg_event = threading.Event()
@@ -55,19 +55,19 @@ class RuntimeMngr(PubsubHandler):
 
         while True:
             logger.info("[Runtime.register] Attempting to register...");
-            self.mqttc.pubsub_message_publish(reg_msg)
+            self.pubsub_client.pubsub_message_publish(reg_msg)
             time.sleep(timeout)
             evt_flag = self.reg_event.wait(timeout)
             if evt_flag: break # event is set; registration response received
 
         # remove subscription to reg topic
-        self.mqttc.pubsub_message_handler_remove(self.rt.reg_topic)
+        self.pubsub_client.pubsub_message_handler_remove(self.rt.reg_topic)
 
         # subscribe to runtime control topic to receive module requests
-        self.mqttc.pubsub_message_handler_add(self.rt.ctl_topic, self.control)
+        self.pubsub_client.pubsub_message_handler_add(self.rt.ctl_topic, self.control)
 
         # subscribe to runtime stdin topic (TODO: send things here)
-        self.mqttc.pubsub_message_handler_add(self.rt.stdin_topic, self.control)
+        self.pubsub_client.pubsub_message_handler_add(self.rt.stdin_topic, self.control)
 
         logger.info("[Runtime.register] Registration done.");
 
