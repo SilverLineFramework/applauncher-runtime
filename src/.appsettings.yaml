@@ -10,19 +10,17 @@ launcher:
   # union of apis supported by all configured launchers below
   apis: python:python3 wasm:wasi_preview_1
   PY: # launcher key
-    class: launcher.python-launcher.PythonLauncher # instanciate a Launcher-derived class from: module.submodule.Class
-    apis: python:python3 # space-separated list e.g.: python:python3 wasm:wasi_preview_1
-    # launcher-specific (launcher.python-launcher) arguments
+    class: launcher.python_launcher.PythonLauncher # instanciate a Launcher-derived class from: module.submodule.Class
+    # launcher-specific (launcher.python_launcher) arguments
     image: python
   WA: # launcher key
-    class: launcher.wasm-launcher.WasmLauncher # instanciate a Launcher-derived class from: module.submodule.Class
-    apis: wasm:wasi_preview_1 # space-separated list e.g.: python:python3 wasm:wasi_preview_1
-    # launcher-specific (launcher.wasm-launcher) arguments
+    class: launcher.wasm_launcher.WasmLauncher # instanciate a Launcher-derived class from: module.submodule.Class
+    # launcher-specific (launcher.wasm_launcher) arguments
     image: python
   # other examples TODO
   #CTN: # launcher key
-    #class: launcher.container-launcher.ContainerLauncher # instanciate a Launcher-derived class from: module.submodule.Class
-    #launcher-specific (launcher.container-launcher) arguments
+    #class: launcher.container_launcher.ContainerLauncher # instanciate a Launcher-derived class from: module.submodule.Class
+    #launcher-specific (launcher.container_launcher) arguments
     #...
   #PYN: # launcher key
     #class: launcher.scripted-native-launcher.NativeLauncher # instanciate a Launcher-derived class from: module.submodule.Class
