@@ -1,18 +1,5 @@
-# launcher config; what starts modules
-launcher:
-  class: launcher.docker.DockerLauncher # instanciate a Launcher-derived class from: module.submodule.Class
-  apis: python:python3 # space-separated list e.g.: python:python3 wasm:wasi_preview_1
-  # launcher-specific (docker.launcher.py) arguments
-  args:
-    pipe_stdout: true
-    image: conixcenter/python
-  # other examples TODO
-  #class: launcher.scripted-native.py
-  #args:
-  #  script_path: runtimemngr/py_run.sh
-  #  #script_path: runtimemngr/wasm_run.sh
-  #  #script_path: runtimemngr/exe_run.sh
-  #  pipe_stdin_stdout: true
+# this file contains user-facing config settings;
+# internal application settings in .appsettings.yaml
 
 # runtime settings
 runtime:
@@ -20,22 +7,10 @@ runtime:
   uuid: # leave blank to generate a new uuid; or set a fixed uuid value
   #uuid: cb65196b-0537-4364-939a-87d004babd4c
   runtime_type: containerized-modules
-  apis: "@format {this.launcher.apis}" #apis from launcher config
   reg_attempts: 0 # 0 = infinite
   reg_timeout_seconds: 5
   max_nmodules: 100
   realm: realm
-
-# topics used by runtime
-# realm and uuid (defined in runtime section) are replaced by values
-# (separate section to use variables in runtime section)
-topics:
-  reg: "@format {this.runtime.realm}/proc/reg"
-  ctl: "@format {this.runtime.realm}/proc/control/{this.runtime.uuid}"
-  dbg: "@format {this.runtime.realm}/proc/debug/{this.runtime.uuid}"
-  stdout: "@format {this.runtime.realm}/proc/debug/{this.runtime.uuid}/stdout"
-  stdin: "@format {this.runtime.realm}/proc/debug/{this.runtime.uuid}/stdin"
-  stderr: "@format {this.runtime.realm}/proc/debug/{this.runtime.uuid}/stderr"
 
 # mqtt username and password in .secrets.yaml
 mqtt:
@@ -43,9 +18,12 @@ mqtt:
   port: 8883
   ssl: true
 
-# where we keep program files
+# where/how we keep program files;
+# these might change, depending on class defined in .appsettings.yaml
 repository:
-  class: launcher.filestore_builder.FileStoreBuilder # instanciate a Repo class from: module.submodule.Class
-  # repo-specific args
-  args:
-    url: https://arena-dev1.conix.io/store
+  url: https://arena-dev1.conix.io/store
+
+# launcher config; what starts modules
+launcher:
+  # launcher general settings
+  pipe_stdout: true

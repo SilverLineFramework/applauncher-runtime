@@ -1,0 +1,48 @@
+# internal, developer-facing application settings
+# ** a *normal* user will normally not edit this file **
+
+dynaconf_merge: true # merge with config in settings.yaml (required)
+
+# launcher config; what starts modules
+# add launchers (a Launcher-derived class) here; launcher key is the create request filetype (WA, PY, ...)
+launcher:
+  # space-separated list e.g.: python:python3 wasm:wasi_preview_1;
+  # union of apis supported by all configured launchers below
+  apis: python:python3 wasm:wasi_preview_1
+  PY: # launcher key
+    class: launcher.python-launcher.PythonLauncher # instanciate a Launcher-derived class from: module.submodule.Class
+    apis: python:python3 # space-separated list e.g.: python:python3 wasm:wasi_preview_1
+    # launcher-specific (launcher.python-launcher) arguments
+    image: python
+  WA: # launcher key
+    class: launcher.wasm-launcher.WasmLauncher # instanciate a Launcher-derived class from: module.submodule.Class
+    apis: wasm:wasi_preview_1 # space-separated list e.g.: python:python3 wasm:wasi_preview_1
+    # launcher-specific (launcher.wasm-launcher) arguments
+    image: python
+  # other examples TODO
+  #CTN: # launcher key
+    #class: launcher.container-launcher.ContainerLauncher # instanciate a Launcher-derived class from: module.submodule.Class
+    #launcher-specific (launcher.container-launcher) arguments
+    #...
+  #PYN: # launcher key
+    #class: launcher.scripted-native-launcher.NativeLauncher # instanciate a Launcher-derived class from: module.submodule.Class
+    # launcher-specific (docker.launcher.py) arguments
+    #script_path: runtimemngr/py_run.sh
+    #pipe_stdin_stdout: true
+
+runtime:
+  apis: "@format {this.launcher.apis}" #apis from launcher config
+
+# topics used by runtime
+# realm and uuid (defined in runtime section - in settings.yaml) are replaced by values
+topics:
+  reg: "@format {this.runtime.realm}/proc/reg"
+  ctl: "@format {this.runtime.realm}/proc/control/{this.runtime.uuid}"
+  dbg: "@format {this.runtime.realm}/proc/debug/{this.runtime.uuid}"
+  stdout: "@format {this.runtime.realm}/proc/debug/{this.runtime.uuid}/stdout"
+  stdin: "@format {this.runtime.realm}/proc/debug/{this.runtime.uuid}/stdin"
+  stderr: "@format {this.runtime.realm}/proc/debug/{this.runtime.uuid}/stderr"
+
+# where/how we keep program files
+repository:
+  class: launcher.filestore_builder.FileStoreBuilder # instanciate a Repo class from: module.submodule.Class
