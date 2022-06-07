@@ -2,14 +2,14 @@ import unittest
 from common.config import settings
 import os
 
-from launcher.filestore_builder import FileStoreBuilder
-from launcher.file_action import FileInfo
+from program_files.filestore_builder import FileStoreBuilder
+from program_files.file_action import FileInfo
 
 class TestRepo(unittest.TestCase):
     def setUp(self):
 
         # test program to get files
-        self.test_program_url = f"{settings.get('repository.args.url')}/users/arena/py/image-switcher"
+        self.test_program_url = f"{settings.get('repository.url')}/users/arena/py/image-switcher"
         # test program files
         self.test_file_names = [ "image-switcher.py", "requirements.txt" ]
         # additional program files
