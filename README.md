@@ -1,6 +1,6 @@
 # Runtime Container
 
-Runtime manager that can start modules inside containers or by launching a WASM/Python runtime/interpreter in a separate process (instead of WASM micro-processes).
+Runtime manager that can start modules inside containers, which can be standlone python interpreters or WASM runtimes (instead of directly on WASM micro-processes).
 
 ### Notes
 

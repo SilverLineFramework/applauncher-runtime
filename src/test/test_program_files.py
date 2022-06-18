@@ -9,7 +9,7 @@ class TestRepo(unittest.TestCase):
     def setUp(self):
 
         # test program to get files
-        self.test_program_url = f"{settings.get('repository.url')}/users/arena/py/image-switcher"
+        self.test_program_url = f"{settings.repository.url}/users/arena/py/image-switcher"
         # test program files
         self.test_file_names = [ "image-switcher.py", "requirements.txt" ]
         # additional program files

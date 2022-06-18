@@ -8,7 +8,7 @@ import atexit
 from common.messages import FileTypes, Result
 from .runtime import Runtime
 from common.config import settings
-from mqtt.pubsub_proto import PubsubHandler
+from mqtt.pubsub import PubsubHandler
 
 class RuntimeMngr(PubsubHandler):
     """Runtime Manager; handles topic messages"""

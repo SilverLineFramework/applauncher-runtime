@@ -2,15 +2,16 @@
 Actions (copy/download) executed on a program file
 """
 
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 import os
+from pathlib import Path
 import shutil
 import requests
 
-class FileInfo:
+class FileInfo(metaclass=ABCMeta):
     """Hold information about a file that we apply an action to"""
 
-    def __init__(self, source, dest, tmp=False):
+    def __init__(self, source: Path, dest: Path, tmp=False) -> None:
         """
         Arguments:
             source: where to get the file (download url/path to copy or compress from)
@@ -22,49 +23,58 @@ class FileInfo:
         self._tmp = tmp
 
     @property
-    def source_path(self):
+    def source_path(self) -> Path:
         return self._source_path
 
     @property
-    def path(self):
+    def path(self) -> Path:
         return self._path
 
     @path.setter
-    def path(self, path):
+    def path(self, path: Path):
         self._path = path
 
     @property
-    def tmp(self):
+    def tmp(self) -> bool:
         return self._tmp
 
-    def __str__(self):
+    def __str__(self) -> str:
         #return str(self.__class__) + ": " + str(self.__dict__)
         return str(self.__dict__)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
 
-class FileAction(ABC):
+class FileAction(metaclass=ABCMeta):
     """ FileAction abstract class; FileActions have a method for executing an action. """
+     
     @abstractmethod
     def execute(self):
         pass
 
-    def __str__(self):
+    @property    
+    @abstractmethod
+    def file(self) -> FileInfo:
+        pass
+
+    def __str__(self) -> str:
         return str(self.__dict__)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
-
 
 class FileDownloadAction(FileAction):
     """
     Download a file indicated by FileInfo.source_path to a file at FileInfo.path
     """
-    def __init__(self, file: FileInfo):
+    def __init__(self, file: FileInfo) -> None:
         self._file = file
 
-    def execute(self):
+    @property
+    def file(self) -> FileInfo:
+        return self._file
+
+    def execute(self) -> FileInfo:
         response = requests.get(self._file.source_path)
         f = open(self._file.path, "wb")
         f.write(response.content)
@@ -76,13 +86,18 @@ class FileCopyAction(FileAction):
     """
     Copy a file indicated by FileInfo.source_path to a file at FileInfo.path
     """
-    def __init__(self, file: FileInfo):
+    def __init__(self, file: FileInfo) -> None:
         self._file = file
 
-    def execute(self):
+    @property
+    def file(self) -> FileInfo:
+        return self._file
+
+    def execute(self) -> FileInfo:
         shutil.copy2(self._file.source_path, self._file.path)
         # tmp files are delete after copy
-        if self._file.tmp and os.path.exists(self._file.source_path): os.remove(self._file.source_path)
+        if self._file.tmp and os.path.exists(self._file.source_path):
+            os.remove(self._file.source_path)
 
         return self._file
 

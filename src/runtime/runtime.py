@@ -1,8 +1,7 @@
 """
 *TL;DR
-Runtime class; Store information about the runtime
+Runtime model; Store information about the runtime
 """
-
 
 import json
 import uuid

@@ -1,6 +1,6 @@
 """
 *TL;DR
-Module class; Store information about wasm modules running
+Module model; Store information about wasm modules running
 """
 
 import json
