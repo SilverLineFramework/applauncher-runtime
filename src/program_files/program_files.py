@@ -1,7 +1,7 @@
 """
 Program files are collected (downloaded/copied/compressed/...) into a destination folder or tar file
 """
-from typing import List
+from typing import List, Optional
 import tempfile
 import os
 import shutil
@@ -29,7 +29,7 @@ class ProgramFilesInfo:
 
     # declare types of instance variables
     _base_path: Path
-    _tar_filepath: Path
+    _tar_filepath: Optional[Path]=None
     _file_actions: "list[FileAction]"
     _files: "list[FileInfo]"
 
@@ -56,9 +56,6 @@ class ProgramFilesInfo:
 
         # create files folder (inside path)
         os.makedirs(self.path)
-
-        # tar path, if created
-        self._tar_filepath = None
 
         # array of FileActions to execute on get_files()
         self._file_actions = []

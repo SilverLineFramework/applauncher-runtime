@@ -4,10 +4,11 @@ Define interface a program builder should implement
 TODO: review; possibly too Filestore-specific ?
 """
 
-from abc import ABC, abstractmethod, abstractproperty
+from abc import abstractmethod, abstractproperty
+from typing import Protocol
 
-class ProgramFilesBuilder(ABC):
-    """ ProgramFilesBuilder abstract class """
+class ProgramFilesBuilder(Protocol):
+    """ ProgramFilesBuilder interface """
 
     @property
     @abstractmethod

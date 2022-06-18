@@ -2,14 +2,20 @@
 Actions (copy/download) executed on a program file
 """
 
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
+from typing import Protocol
 import os
 from pathlib import Path
 import shutil
 import requests
 
-class FileInfo(metaclass=ABCMeta):
+class FileInfo():
     """Hold information about a file that we apply an action to"""
+
+    # declare types of instance variables
+    _source_path: Path
+    _path: Path
+    _tmp: bool
 
     def __init__(self, source: Path, dest: Path, tmp=False) -> None:
         """
@@ -45,7 +51,7 @@ class FileInfo(metaclass=ABCMeta):
     def __repr__(self) -> str:
         return self.__str__()
 
-class FileAction(metaclass=ABCMeta):
+class FileAction(Protocol):
     """ FileAction abstract class; FileActions have a method for executing an action. """
      
     @abstractmethod
