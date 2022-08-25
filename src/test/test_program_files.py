@@ -1,12 +1,13 @@
 import unittest
-from common.config import settings
 import os
 
-from program_files.filestore_builder import FileStoreBuilder
-from program_files.file_action import FileInfo
+from common import settings
+
+from program_files import FileStoreBuilder
 
 class TestRepo(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
 
         # test program to get files
         self.test_program_url = f"{settings.repository.url}/users/arena/py/image-switcher"
