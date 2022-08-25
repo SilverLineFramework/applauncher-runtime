@@ -47,8 +47,10 @@ runtime:
 # topics used by runtime
 # realm and uuid (defined in runtime section - in settings.yaml) are replaced by values
 topics:
-  reg: "@format {this.runtime.realm}/proc/reg"
-  ctl: "@format {this.runtime.realm}/proc/control/{this.runtime.uuid}"
+  reg: "@format {this.runtime.realm}/proc/reg" # OLD; to remove
+  ctl: "@format {this.runtime.realm}/proc/control/{this.runtime.uuid}" # OLD; to remove
+  runtimes: "@format {this.runtime.realm}/proc/runtimes"
+  modules: "@format {this.runtime.realm}/proc/modules/{this.runtime.uuid}"
   dbg: "@format {this.runtime.realm}/proc/debug/{this.runtime.uuid}"
   stdout: "@format {this.runtime.realm}/proc/debug/{this.runtime.uuid}/stdout"
   stdin: "@format {this.runtime.realm}/proc/debug/{this.runtime.uuid}/stdin"
