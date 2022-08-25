@@ -82,6 +82,7 @@ class FileDownloadAction(FileAction):
 
     def execute(self) -> FileInfo:
         response = requests.get(self._file.source_path)
+        os.makedirs(os.path.dirname(self._file.path), exist_ok=True)
         f = open(self._file.path, "wb")
         f.write(response.content)
         f.close()

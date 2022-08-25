@@ -8,8 +8,8 @@ import shutil
 from pathlib import Path
 import tarfile
 
+from common import ProgramFileException
 from .file_action import FileInfo, FileAction, FileDownloadAction, FileCopyAction
-from common.exception import ProgramFileException
 
 class ProgramFilesInfo:
     """Hold information about program files;
@@ -33,12 +33,16 @@ class ProgramFilesInfo:
     _file_actions: "list[FileAction]"
     _files: "list[FileInfo]"
 
-    def __init__(self, base_path: str=None) -> None:
+    def __init__(self, base_path: str=None, do_cleanup: bool=True) -> None:
         """
         Init object; Make sure path exists and is an empty folder
         Arguments:
             path: destination folder
         """
+        
+        # if we should delete files
+        self._do_cleanup = do_cleanup
+        
         # create path if needed
         if not base_path:
             base_path = tempfile.mkdtemp()
@@ -65,6 +69,9 @@ class ProgramFilesInfo:
 
     def __del__(self) -> None:
         """ Remove files """
+        # only perform cleanup if do_cleanup=True
+        if not self._do_cleanup: return
+        
         # remove files
         for fa in self._file_actions:
             if os.path.exists(fa.file.path):
@@ -116,7 +123,7 @@ class ProgramFilesInfo:
         with tarfile.open(tar_filepath, "w:gz") as tf:
             for root, dirs, files in os.walk(path):
                 for file in files:
-                    tf.add(os.path.join(root, file))
+                    tf.add(os.path.join(root, file), arcname=file)
             tf.close()
 
     def get_files(self):

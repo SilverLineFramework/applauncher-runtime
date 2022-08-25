@@ -9,11 +9,10 @@ from pathlib import Path
 import ssl
 from bs4 import BeautifulSoup
 
-from common.exception import ProgramFileException
+from common import ProgramFileException
 from .program_files_builder import ProgramFilesBuilder
 from .program_files import ProgramFilesInfo
-
-from .file_action import FileInfo, FileCopyAction
+from .file_action import FileCopyAction
 
 class FileStoreBuilder(ProgramFilesBuilder):
     """
@@ -24,14 +23,22 @@ class FileStoreBuilder(ProgramFilesBuilder):
 
     _description = 'ARENA filestore repo v0'
 
-    def __init__(self) -> None:
-        self.reset()
+    def __init__(self, do_cleanup=True) -> None:
+        self.reset(do_cleanup)
 
-    def reset(self) -> None:
+    def reset(self, do_cleanup=True) -> None:
         # new instance of program files
-        self._files_info = ProgramFilesInfo()
+        self._files_info = ProgramFilesInfo(do_cleanup=do_cleanup)
 
-    def from_url(self, url: str) -> None:
+    def from_module_filename(self, store_base_url: str, storepath: str) -> None:
+        """Get files from  module filename in the form username/program_folder            
+           NOTE: Creates the full url and calls from_url(); assumes directory index listing is enabled on the webserver
+        """
+        url = f"{store_base_url}/users/{storepath}" # TODO: better handling of this path concat
+        print("getting from:", url)
+        self.from_url(url)
+
+    def from_url(self, url: str, base_path: str="") -> None:
         """Get files listed in 'from_url' index.html and add to files list
            files list will be processed in get_files
            NOTE: assumes directory index listing is enabled on the webserver
@@ -51,13 +58,18 @@ class FileStoreBuilder(ProgramFilesBuilder):
         for file_link in links:
             file_href = file_link.get('href')
             if not file_href == '../':
-                parsed_url = urlparse(f"{url}{file_href}")
-                filename = Path(self._files_info.path).joinpath(Path(parsed_url.path).name)
-                # add file download url using default download action
-                self._files_info.add_file(f"{url}{file_href}", filename)
-                count += 1
+                if file_href.endswith('/'):
+                    new_base_path = base_path.join(file_href)
+                    parsed_url = urlparse(f"{url}{file_href}")
+                    count = count + self.from_url(parsed_url.geturl(), new_base_path)
+                else:
+                    filename = Path(self._files_info.path).joinpath(Path(f"{base_path}{file_href}"))
+                    # add file download url using default download action
+                    self._files_info.add_file(f"{url}{file_href}", filename)
+                    count += 1
         if count == 0:
             raise ProgramFileException(f"No program files to download at: {url}.")
+        return count
 
     def copy_file(self, source_filepath: str, dest_filepath: str="") -> None:
         """
