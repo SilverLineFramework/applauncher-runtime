@@ -5,10 +5,10 @@ import uuid
 import threading
 import time
 import atexit
-from common.messages import FileTypes, Result
-from .runtime import Runtime
-from common.config import settings
-from mqtt.pubsub import PubsubHandler
+from common import settings, FileTypes, Result, RuntimeMsgs
+from pubsub import PubsubHandler
+
+from model import Runtime
 
 class RuntimeMngr(PubsubHandler):
     """Runtime Manager; handles topic messages"""
@@ -16,15 +16,16 @@ class RuntimeMngr(PubsubHandler):
     def __init__(self, module_launcher=None):
         self.modules = [] # list of modules
         self.moduleLauncher = module_launcher
-
-        rt_settings = {**settings.get('runtime'), 'topics': settings.get('topics')}
-        self.rt = Runtime(**rt_settings)
+        
+        #rt_settings = {**settings.get('runtime'), 'topics': settings.get('topics')}
+        self.rt = Runtime(**settings.get('runtime'))
+        self.rt_messages = RuntimeMsgs(settings.get('topics'))
 
         # register exit handler to send delete runtime request
         atexit.register(self.exit_handler)
 
     def exit_handler(self):
-        if hasattr(self, lastwill_msg):
+        if hasattr(self, "lastwill_msg"):
             self.pubsub_client.pubsub_message_publish(self.lastwill_msg)
             time.sleep(.5) # need time to publish
 
@@ -36,7 +37,7 @@ class RuntimeMngr(PubsubHandler):
         self.pubsub_client.pubsub_last_will_set(self.lastwill_msg)
 
         # subscribe to reg to receive registration confirmation
-        self.pubsub_client.pubsub_message_handler_add(self.rt.reg_topic, self.reg)
+        self.pubsub_client.pubsub_message_handler_add(self.rt_topics.reg_topic, self.reg)
 
         # start a thread to send registration messages once we are connected
         self.reg_event = threading.Event()
