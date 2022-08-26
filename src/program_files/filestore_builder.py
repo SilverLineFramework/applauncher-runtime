@@ -38,7 +38,7 @@ class FileStoreBuilder(ProgramFilesBuilder):
         url = f"{store_base_url}/users/{module_name}" # TODO: better handling of this path concat
         self.from_url(url)
 
-    def _from_url(self, url: str, base_path: str) -> None:
+    def __from_url(self, url: str, base_path: str) -> None:
         """Internal get files from url to be called recursively
         """
 
