@@ -9,10 +9,10 @@ import uuid
 import paho.mqtt.client as paho
 from logzero import logger
 
-from common import ErrorMsg, RuntimeException
+from common import RuntimeException
 
-from pubsub_msg import PubsubMessage
-from pubsub import PubsubListner, PubsubHandler
+from pubsub.pubsub_msg import PubsubMessage
+from pubsub.pubsub import PubsubListner, PubsubHandler
 
 class MQTTListner(paho.Client, PubsubListner):
     """MQTT client class extending mqtt.Client. Implements PubsubListner methods.
@@ -21,6 +21,8 @@ class MQTTListner(paho.Client, PubsubListner):
     ----------
     topic_handler: PubsubHandler
         send notifications (connected, error, topic messages) to topic_handler
+    error_topic: str
+        topic where errors are sent
     host: str
         MQTT host
     port: int
@@ -40,25 +42,26 @@ class MQTTListner(paho.Client, PubsubListner):
     
     def __init__(self,
                 topic_handler: PubsubHandler,
+                error_topic: str = 'error_topic',
                 host: str = 'arenaxr.org',
                 port: int = 1883,
-                username: str= None,
-                password: str= None,
+                username: str = None,
+                password: str = None,
                 ssl: bool= False,
                 cid: str= str(uuid.uuid4())) -> None:
 
         super().__init__(cid)
 
+        self._error_topic = error_topic
         self.__topic_dispatcher = {}
         self.__subscribe_mid = {}
 
-        logger.debug("[MQTTListner.Init] Starting MQTT client...")
+        logger.debug("Starting MQTT client...")
 
-        if topic_handler:
-            self._th = topic_handler
-        else:
-            logger.info("[MQTTListner.Init] No topic handler provided! MQTT \
-                        notifications will not be delivered.")
+        
+        self._th = topic_handler
+        if not topic_handler:
+            logger.info("No topic handler provided! MQTT notifications will not be delivered.")
 
         if username and password:
             self.username_pw_set(username=username, password=password)
@@ -72,11 +75,11 @@ class MQTTListner(paho.Client, PubsubListner):
     def on_connect(self, mqttc, userctx, flags, rc) -> None:
         """Client connect callback."""
         if rc == 0:
-            logger.debug("[MQTTListner.Connect] Connected.")
+            logger.debug("Connected.")
             if self._th:
                 self._th.pubsub_connected(self._th, mqttc)
         else:
-            logger.error(f"[MQTTListner.Connect] Bad connection returned code={rc}")
+            logger.error(f"Bad connection returned code={rc}")
 
     def on_message(self, mqttc, userctx, msg) -> None:
         """MQTT Message handler."""
@@ -90,16 +93,16 @@ class MQTTListner(paho.Client, PubsubListner):
 
     def on_subscribe(self, mqttc, obj, mid, granted_qos) -> None:
         """Subscribe callback."""
-        logger.debug(f"[MQTTListner.Subscribe] Subscribed: \
+        logger.debug(f"Subscribed: \
                     {self.__subscribe_mid.get(mid, 'to a topic.')}")
 
     def on_log(self, mqttc, obj, level, string) -> None:
         """Logging callback."""
 
         if level == paho.MQTT_LOG_ER:
-            logger.error(f"[MQTTListner.Log] MQTT Error: {string}")
+            logger.error(f"MQTT Error: {string}")
             if self._th:
-                self._th.pubsub_error(self._th, "[MQTTListner.Log] MQTT Error", string)
+                self._th.pubsub_error(self._th, "MQTT Error", string)
             return
         if level == paho.MQTT_LOG_WARNING:
             logger.warning(string)
@@ -107,18 +110,18 @@ class MQTTListner(paho.Client, PubsubListner):
             logger.info(string)
         else: logger.debug(string)
 
-    def pubsub_last_will_set(self, lastwill_msg: PubsubMessage) -> None:
+    def last_will_set(self, lastwill_msg: PubsubMessage) -> None:
         """Set last will message; If the client disconnects without calling disconnect(),
            the broker will publish the message on its behalf.
             lastwill_msg : PubsubMessage
                 message (topic, payload) to publish
         """
         payload = json.dumps(lastwill_msg.payload)
-        logger.debug(f"[MQTTListner.LastWill] Setting last will \
+        logger.debug(f"Setting last will \
                             {str(lastwill_msg.topic)}: {payload}")
         self.will_set(lastwill_msg.topic, payload)
 
-    def pubsub_message_handler_add(self,
+    def message_handler_add(self,
                                 topic: str,
                                 handler: Callable[[PubsubMessage], None],
                                 include_subtopics: bool=False
@@ -142,7 +145,7 @@ class MQTTListner(paho.Client, PubsubListner):
             self.__subscribe_mid[mid] = subs_topic
         self.__topic_dispatcher[topic] = handler
 
-    def pubsub_message_handler_remove(self, topic: str) -> None:
+    def message_handler_remove(self, topic: str) -> None:
         """unsubscribes to topic and removes message handler
             topic:
                 the topic to subscribe
@@ -158,13 +161,13 @@ class MQTTListner(paho.Client, PubsubListner):
         else: self.unsubscribe(topic)
         self.__topic_dispatcher.pop(topic, None)
 
-    def pubsub_message_publish(self, pubsub_msg: PubsubMessage) -> None:
+    def message_publish(self, pubsub_msg: PubsubMessage) -> None:
         """Publish a message; Called by PubsubHandler
             pubsub_msg : PubsubMessage
                 message (topic, payload) to publish
         """
         payload = json.dumps(pubsub_msg.payload)
-        logger.debug(f"[MQTTListner.MsgPublish] {str(pubsub_msg.topic)}: {payload}")
+        logger.debug(f"Publish msg: {str(pubsub_msg.topic)}: {payload}")
         self.publish(pubsub_msg.topic, payload)
 
     def __json_decode(self, msg: PubsubMessage) -> PubsubMessage:
@@ -174,7 +177,7 @@ class MQTTListner(paho.Client, PubsubListner):
             payload = payload[1:len(payload) - 1]
         return PubsubMessage(msg.topic, json.loads(payload))
 
-    def __on_message(self, msg: PubsubMessage) -> ErrorMsg:
+    def __on_message(self, msg: PubsubMessage) -> PubsubMessage:
         """Message handler internals.
 
         Handlers take a (topic, data) ```Message``` as input, and return either
@@ -185,14 +188,18 @@ class MQTTListner(paho.Client, PubsubListner):
         try:
             decoded_mqtt_msg = self.__json_decode(msg)
         except JSONDecodeError:
-            return ErrorMsg(
+            return PubsubMessage(self._error_topic,
                 {"desc": "Invalid JSON", "data": msg.payload})
 
         handler = self.__topic_dispatcher.get(decoded_mqtt_msg.topic)
 
         if callable(handler):
             try:
-                return handler(self._th, decoded_mqtt_msg)
+                # check if method is bound
+                if hasattr(handler, '__self__'):
+                    return handler(decoded_mqtt_msg)
+                else:
+                    return handler(self._th, decoded_mqtt_msg)
             # Runtime Exceptions are raised by handlers in response to
             # invalid request data (which has been detected).
             except RuntimeException as runtime_ex:
@@ -201,7 +208,7 @@ class MQTTListner(paho.Client, PubsubListner):
             except Exception as e:
                 logger.warning(traceback.format_exc())
                 logger.warning(f"Input message: {str(decoded_mqtt_msg.payload)}")
-                return ErrorMsg(
+                return PubsubMessage(self._error_topic,
                     {"desc": "Uncaught exception", "data": str(e)})
         else:
-            return ErrorMsg({"desc": "Invalid topic", "data": msg.topic})
+            return PubsubMessage(self._error_topic, {"desc": "Invalid topic", "data": msg.topic})

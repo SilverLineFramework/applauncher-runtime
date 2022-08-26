@@ -20,8 +20,8 @@ class ProgramFilesBuilder(Protocol):
         """ Reset builder state """
 
     @abstractmethod
-    def from_module_filename(self, store_base_url, storepath):
-        """Get files from module filename in the form username/program_folder """
+    def from_module_name(self, store_base_url, module_name):
+        """Get files from module name in the form username/module_folder """
         
     @abstractmethod
     def from_url(self, url):

@@ -8,6 +8,7 @@ from urllib.request import urlopen
 from pathlib import Path
 import ssl
 from bs4 import BeautifulSoup
+from logzero import logger
 
 from common import ProgramFileException
 from .program_files_builder import ProgramFilesBuilder
@@ -30,12 +31,11 @@ class FileStoreBuilder(ProgramFilesBuilder):
         # new instance of program files
         self._files_info = ProgramFilesInfo(do_cleanup=do_cleanup)
 
-    def from_module_filename(self, store_base_url: str, storepath: str) -> None:
-        """Get files from  module filename in the form username/program_folder            
+    def from_module_name(self, store_base_url: str, module_name: str) -> None:
+        """Get files from  module name in the form username/module_folder            
            NOTE: Creates the full url and calls from_url(); assumes directory index listing is enabled on the webserver
         """
-        url = f"{store_base_url}/users/{storepath}" # TODO: better handling of this path concat
-        print("getting from:", url)
+        url = f"{store_base_url}/users/{module_name}" # TODO: better handling of this path concat
         self.from_url(url)
 
     def from_url(self, url: str, base_path: str="") -> None:
@@ -43,6 +43,8 @@ class FileStoreBuilder(ProgramFilesBuilder):
            files list will be processed in get_files
            NOTE: assumes directory index listing is enabled on the webserver
         """
+        logger.debug(f"Getting files from: {url}")
+        
         # make sure URL has a trailing /
         if not url.endswith('/'):
             url = url + '/'
@@ -52,8 +54,7 @@ class FileStoreBuilder(ProgramFilesBuilder):
         index_parsed = BeautifulSoup(index_data, "html.parser")
         links = index_parsed.find_all('a')
         if len(links) == 0:
-            raise ProgramFileException(f"Program files listing returned empty: {url} \
-                            (is directory index listing is enabled on the webserver ?)")
+            raise ProgramFileException(f"Program files listing returned empty: {url} (is directory index listing is enabled on the webserver ?)")
         count=0
         for file_link in links:
             file_href = file_link.get('href')

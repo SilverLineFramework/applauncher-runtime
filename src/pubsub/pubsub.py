@@ -7,13 +7,13 @@ pubsub topic message notifications (a PubsubHandler)
 from typing import Protocol, Callable
 from abc import abstractmethod
 
-from pubsub_msg import PubsubMessage
+from .pubsub_msg import PubsubMessage
 
 class PubsubListner(Protocol):
     """Calls the PubsubHandler can perform on the mqtt listner"""
 
     @abstractmethod
-    def pubsub_last_will_set(self, lastwill_msg: PubsubMessage) -> None:
+    def last_will_set(self, lastwill_msg: PubsubMessage) -> None:
         """Set last will message; If the client disconnects without calling disconnect(),
            the broker will publish the message on its behalf.
             lastwill_msg : PubsubMessage
@@ -22,7 +22,7 @@ class PubsubListner(Protocol):
         raise NotImplementedError
 
     @abstractmethod
-    def pubsub_message_handler_add(self,
+    def message_handler_add(self,
                                     topic: str,
                                     handler: Callable[[PubsubMessage], None],
                                     include_subtopics: bool=False
@@ -38,7 +38,7 @@ class PubsubListner(Protocol):
         raise NotImplementedError
 
     @abstractmethod
-    def pubsub_message_handler_remove(self, topic: str) -> None:
+    def message_handler_remove(self, topic: str) -> None:
         """unsubscribes to topic and removes message handler
             topic:
                 the topic to subscribe
@@ -46,7 +46,7 @@ class PubsubListner(Protocol):
         raise NotImplementedError
 
     @abstractmethod
-    def pubsub_message_publish(self, pubsub_msg: PubsubMessage) -> None:
+    def message_publish(self, pubsub_msg: PubsubMessage) -> None:
         """Publish a message
             pubsub_msg : PubsubMessage
                 message (topic, payload) to publish
