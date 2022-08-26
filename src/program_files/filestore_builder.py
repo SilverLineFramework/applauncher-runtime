@@ -38,13 +38,10 @@ class FileStoreBuilder(ProgramFilesBuilder):
         url = f"{store_base_url}/users/{module_name}" # TODO: better handling of this path concat
         self.from_url(url)
 
-    def from_url(self, url: str, base_path: str="") -> None:
-        """Get files listed in 'from_url' index.html and add to files list
-           files list will be processed in get_files
-           NOTE: assumes directory index listing is enabled on the webserver
+    def _from_url(self, url: str, base_path: str) -> None:
+        """Internal get files from url to be called recursively
         """
-        logger.debug(f"Getting files from: {url}")
-        
+
         # make sure URL has a trailing /
         if not url.endswith('/'):
             url = url + '/'
@@ -71,6 +68,14 @@ class FileStoreBuilder(ProgramFilesBuilder):
         if count == 0:
             raise ProgramFileException(f"No program files to download at: {url}.")
         return count
+
+    def from_url(self, url: str) -> None:
+        """Get files listed in 'from_url' index.html and add to files list
+           files list will be processed in get_files
+           NOTE: assumes directory index listing is enabled on the webserver
+        """
+        logger.debug(f"Getting files from: {url}")
+        return self.__from_url(url, "")
 
     def copy_file(self, source_filepath: str, dest_filepath: str="") -> None:
         """
