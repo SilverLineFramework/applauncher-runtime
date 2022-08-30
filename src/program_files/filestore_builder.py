@@ -59,7 +59,7 @@ class FileStoreBuilder(ProgramFilesBuilder):
                 if file_href.endswith('/'):
                     new_base_path = base_path.join(file_href)
                     parsed_url = urlparse(f"{url}{file_href}")
-                    count = count + self.from_url(parsed_url.geturl(), new_base_path)
+                    count = count + self.__from_url(parsed_url.geturl(), new_base_path)
                 else:
                     filename = Path(self._files_info.path).joinpath(Path(f"{base_path}{file_href}"))
                     # add file download url using default download action
@@ -77,29 +77,21 @@ class FileStoreBuilder(ProgramFilesBuilder):
         logger.debug(f"Getting files from: {url}")
         return self.__from_url(url, "")
 
-    def copy_file(self, source_filepath: str, dest_filepath: str="") -> None:
+    def copy_file(self, source_path: str, source_file: str, dest_path: str="") -> None:
         """
             Add file to files list; it will be copied in get_files
             Arguments:
-                source_filepath : fullpath to where the file is, including filename
-                dest_filepath   : path to destination file relative to _files_info.path
-                                  if not given or does not include the filename, a
-                                  name will added based on the source_filepath
+                source_path : path to where the file is
+                source_file : source filename
+                dest_path : destination path, **not including filename** to destination folder relative to _files_info.path
+                            if not given, file will added to _files_info.path
         """
-        # treat dest_filepath as a relative path to _files_info.base_path
-        if dest_filepath.startswith("/"):
-            dest_filepath = dest_filepath[1:]
+        sfp = Path(source_path).joinpath(source_file)
 
-        sfp = Path(source_filepath)
-        if not sfp.name:
-            raise ProgramFileException("Source filepath does not include a filename!")
-
-        dfp = Path(dest_filepath)
-        if not dfp.name:
-            dfp = Path(dest_filepath).joinpath(sfp.name)
-
-        fp = self._files_info.file_fullpath(dfp)
-        self._files_info.add_file(sfp, fp, FileCopyAction)
+        # treat dest_path as a relative path to _files_info.path
+        dfp = self._files_info.path.joinpath(dest_path, source_file)
+        
+        self._files_info.add_file(sfp, dfp, FileCopyAction)
 
     def file_from_string_contents(self, str_contents: str, dest_filepath: str) -> None:
         """
@@ -107,21 +99,22 @@ class FileStoreBuilder(ProgramFilesBuilder):
             Arguments:
                 str_contents    : contents of the file
                 dest_filepath   : path to destination file relative to
-                                _files_info.base_path; MUST include the filename
+                                _files_info.path; MUST include the filename
         """
-        # treat dest_filepath as a relative path to _files_info.base_path
-        if dest_filepath.startswith("/"):
-            dest_filepath = dest_filepath[1:]
+        # treat dest_filepath as a relative path to _files_info.path
+        dfp = Path(self._files_info.path).joinpath(dest_filepath)
 
-        if len(dest_filepath) == 0:
-            raise ProgramFileException("No valid destination filepath given")
+        if not dfp.name:
+            raise ProgramFileException("No valid destination filepath given!")
 
-        (file, source_filepath) = tempfile.mkstemp(text=True)
+        # creates a temporary file; the user of mkstemp() is responsible for deleting the temporary file when done with it.
+        (fd, source_filepath) = tempfile.mkstemp(text=True)
+        file = open(fd, 'wt')
         file.write(str_contents)
         file.close()
 
         # add file to be copied (copy action) and mark as tmp (so it is deleted after copy)
-        self._files_info.add_file(Path(source_filepath), Path(dest_filepath), FileCopyAction, True)
+        self._files_info.add_file(Path(source_filepath), Path(dfp), FileCopyAction, False)
 
     def get_files(self, tar_files: bool=False) -> ProgramFilesInfo:
         """

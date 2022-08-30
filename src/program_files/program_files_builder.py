@@ -28,7 +28,7 @@ class ProgramFilesBuilder(Protocol):
         """Get files listed from 'from_url' """
 
     @abstractmethod
-    def copy_file(self, source_filepath: str, dest_filepath: str=""):
+    def copy_file(self, source_path: str, source_file: str, dest_path: str=""):
         """Add file to files list; it will be copied in get_files
             Arguments:
                 source_filepath : fullpath to where the file is, including filename

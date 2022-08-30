@@ -21,9 +21,7 @@ class TestRepo(unittest.TestCase):
         for fn in files:
             found = False
             for fi in files_info.files:
-                if (    str(fi.source_path) == f"{source_basepath}/{fn}" and
-                        str(fi.path) == f"{files_info.path}/{fn}" and
-                        fi.tmp == False and
+                if (    str(fi.path) == f"{files_info.path}/{fn}" and
                         fi.path.is_file() ):
                     found = True
                     break
@@ -41,17 +39,14 @@ class TestRepo(unittest.TestCase):
         # check files
         self._find_fileinfo_files(files_info, self.test_file_names, self.test_program_url)
 
-        pass
-
     def test_filestore_builder_adds_files(self):
         # setup filestore and get files
         filestore = FileStoreBuilder()
-        filestore.from_url(self.test_program_url)
 
         # add files
         for afn in self.test_additional_files_name:
              # destination file will be in files root; name will be the same as source
-            filestore.copy_file(f"{self.test_additional_files_path}/{afn}")
+            filestore.copy_file(self.test_additional_files_path, afn)
 
         # get files
         files_info = filestore.get_files()
@@ -59,10 +54,22 @@ class TestRepo(unittest.TestCase):
         # check files
         self._find_fileinfo_files(files_info, self.test_additional_files_name, self.test_additional_files_path)
 
-        pass
+    def test_filestore_builder_adds_text_file(self):
+        # setup filestore and get files
+        filestore = FileStoreBuilder()
 
+        # add files
+        for afn in self.test_additional_files_name:
+             # destination file will be in files root; name will be the same as source
+            filestore.file_from_string_contents("test string contents", f"{afn}")        
+        
+        # get files
+        files_info = filestore.get_files()
+
+        # check files
+        self._find_fileinfo_files(files_info, self.test_additional_files_name, self.test_additional_files_path)
+                        
     def test_filestore_builder_tars_files(self):
-
         # setup filestore and get files
         filestore = FileStoreBuilder()
         filestore.from_url(self.test_program_url)
@@ -73,10 +80,7 @@ class TestRepo(unittest.TestCase):
         # check tar exists
         self.assertTrue(os.path.isfile(files_info.tar_filepath))
 
-        pass
-
     def test_filestore_builder_does_cleanup(self):
-
         # setup filestore and get files
         filestore = FileStoreBuilder()
         filestore.from_url(self.test_program_url)
@@ -96,8 +100,6 @@ class TestRepo(unittest.TestCase):
                 break
 
         self.assertFalse(found)
-
-        pass
 
 if __name__ == '__main__':
     unittest.main()

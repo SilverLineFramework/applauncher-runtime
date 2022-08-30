@@ -9,7 +9,7 @@ from pathlib import Path
 import tarfile
 
 from common import ProgramFileException
-from .file_action import FileInfo, FileAction, FileDownloadAction, FileCopyAction
+from .file_action import FileInfo, FileAction, FileDownloadAction
 
 class ProgramFilesInfo:
     """Hold information about program files;
@@ -134,11 +134,6 @@ class ProgramFilesInfo:
 
         # clear file actions
         self._file_actions = []
-
-    def file_fullpath(self, relative_filepath):
-        """Return the fullpath given a path relative to _base_path"""
-        return_path = Path(self.path).joinpath(relative_filepath)
-        return return_path
 
     @property
     def path(self) -> Path:
