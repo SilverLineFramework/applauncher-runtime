@@ -4,6 +4,9 @@ run: venv
 tests: venv
 		$(VENV)/python3 src/test/run_tests.py
 
+test-docker: venv
+		$(VENV)/python3 src/test-docker.py
+
 show-req: venv
 		$(VENV)/pip3 freeze
 

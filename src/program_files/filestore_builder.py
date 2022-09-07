@@ -38,6 +38,14 @@ class FileStoreBuilder(ProgramFilesBuilder):
         url = f"{store_base_url}/users/{module_name}" # TODO: better handling of this path concat
         self.from_url(url)
 
+    def from_module_filename(self, store_base_url: str, module_filename: str) -> None:
+        """Get files from module filename in the form username/module_folder/program_entry_file            
+           NOTE: Creates the full url and calls from_url(); assumes directory index listing is enabled on the webserver
+        """
+        fn_path = Path(module_filename)
+        url = f"{store_base_url}/users/{fn_path.parent}" # TODO: better handling of this path concat
+        self.from_url(url)
+        
     def __from_url(self, url: str, base_path: str) -> None:
         """Internal get files from url to be called recursively
         """

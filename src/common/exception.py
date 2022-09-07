@@ -17,6 +17,11 @@ class MissingField(RuntimeException):
     def __init__(self, data):
         super().__init__("missing field", data)
 
+class NotDeclaredField(RuntimeException):
+    """Field is not acceptable by type."""
+
+    def __init__(self, data):
+        super().__init__("non acceptable field", data)
 class ProgramFileException(RuntimeException):
     """Error copying/downloading/... a file."""
 

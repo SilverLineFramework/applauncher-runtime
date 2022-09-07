@@ -16,7 +16,7 @@ class Streams(str, Enum):
     """Streams enum."""
     stdout = 'stdout'
     stdin = 'stdin'
-    stderr = 'stdin'
+    stderr = 'stderr'
 
 class PubsubStreamer:
     """

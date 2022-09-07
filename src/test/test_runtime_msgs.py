@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from common import settings
 from model import Runtime, Module
 import model.runtime_types as RuntimeTypes
-from runtime.runtime_msgs import RuntimeMsgs
+from model.runtime_msgs import RuntimeMsgs
 
 class TestRtMsgs(unittest.TestCase):
     @classmethod

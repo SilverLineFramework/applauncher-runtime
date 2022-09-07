@@ -13,7 +13,7 @@ import release
 from common.config import settings
 from dynaconf import ValidationError
 
-from mqtt.client import MQTTClient
+from mqtt.listner import MQTTListner
 from runtime.runtime_mngr import RuntimeMngr
 
 def main(args):
@@ -34,7 +34,7 @@ def main(args):
     rtmngr = RuntimeMngr()
 
     # pass runtime mngr as pubsub handler to mqtt client
-    mqttc = MQTTClient(rtmngr, **settings.get('mqtt'))
+    mqttc = MQTTListner(rtmngr, **settings.get('mqtt'))
 
     input("Press Enter to continue...\n")
 

@@ -71,7 +71,7 @@ class MQTTListner(paho.Client, PubsubListner):
         self.connect(host, port, 60)
 
         self.loop_start()
-
+    
     def on_connect(self, mqttc, userctx, flags, rc) -> None:
         """Client connect callback."""
         if rc == 0:

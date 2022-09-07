@@ -18,8 +18,7 @@ class TestStreamer(unittest.TestCase, PubsubHandler):
     
     _MAX_READ_BYTES = 1024
     
-    _IN_TOPIC = "test_ctn_in"
-    _OUT_TOPIC = "test_ctn_out"
+    _TOPICS = {'stdin': 'test/stdin', 'stdout': 'test/stdout', 'stderr': 'test/stderr'}
     
     @classmethod
     def setUpClass(self):
@@ -38,13 +37,13 @@ class TestStreamer(unittest.TestCase, PubsubHandler):
                                          stdin_open = True, 
                                          detach=True)
         self.ctn_sock = self.ctn.attach_socket(params={"stdin": 1, "stdout": 1, "stream":1})
-        self.mqttc = MQTTListner(self, **settings.get('mqtt'))
+        self.mqttc = MQTTListner(self, error_topic=settings.topics.get('dbg'), **settings.get('mqtt'))
         self.pubsub_connected_evt = threading.Event()
         self.pubsub_out_received_evt = threading.Event()
 
     def pubsub_connected(self, listner):
         # subscribe output topic to check container output
-        self.mqttc.pubsub_message_handler_add(self._OUT_TOPIC, self.ctn_output)
+        self.mqttc.message_handler_add(self._TOPICS['stdout'], self.ctn_output)
         self.pubsub_connected_evt.set()
 
     def pubsub_error(self, desc: str, data: str):
@@ -78,9 +77,9 @@ class TestStreamer(unittest.TestCase, PubsubHandler):
         test_str = ''.join(random.choices(string.ascii_lowercase, k=random.randint(100, self._MAX_READ_BYTES)))        
 
         # setup streamer
-        ps_streamer = PubsubStreamer(self.mqttc, self.ctn_sock, self._OUT_TOPIC, self._IN_TOPIC)
-        # simulate we received an message on pubsub; send to container
-        ps_streamer.input(PubsubMessage('test_ctn_in', test_str))
+        ps_streamer = PubsubStreamer(self.mqttc, self.ctn_sock, self._TOPICS)
+        # simulate we received a message on pubsub; send to container
+        ps_streamer.input(PubsubMessage(self._TOPICS['stdin'], test_str))
         # wait to receive payload back on pubsub
         evt_flag = self.pubsub_out_received_evt.wait(5)
         if not evt_flag:
