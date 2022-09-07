@@ -1,6 +1,7 @@
 
 from dynaconf import Dynaconf, Validator
 import uuid
+import os
 
 settings = Dynaconf(
     settings_files=["settings.yaml", ".secrets.yaml", ".appsettings.yaml"],

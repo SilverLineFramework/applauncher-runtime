@@ -1,6 +1,14 @@
 run: venv
 		$(VENV)/python3 src/main.py $(ARGS)
 
+# example how to run with settings root
+run_w_settings_root: venv
+		ROOT_PATH_FOR_DYNACONF="config/new" $(VENV)/python3 src/main.py $(ARGS)
+
+# example how to run with different settings
+run_w_settings: venv
+		SETTINGS_FILE_FOR_DYNACONF="new_settings.yaml;.appsettings.yaml;.secrets.yaml" $(VENV)/python3 src/main.py $(ARGS)
+
 tests: venv
 		$(VENV)/python3 src/test/run_tests.py
 
