@@ -5,26 +5,40 @@ Runtime model; Store information about the runtime
 
 import uuid
 
-from common import settings, MissingField
+from .runtime_model import RuntimeModel
 from .runtime_types import *
 
-class Runtime(dict):
+class Runtime(RuntimeModel, dict):
     """A dictionary to hold runtime properties"""
 
-    __required_props = ['name', 'runtime_type', 'max_nmodules', 'apis']
+    # required attributes
+    _required_attrs = ['uuid', 'type', 'name', 'runtime_type', 'max_nmodules', 'apis']
 
-    def __init__(self, uuid=str(uuid.uuid4()), **kwargs):
+    # if True, only accepts declared attributes at init
+    _strict = True
+    
+    def __init__(self, uuid=str(uuid.uuid4()), attr_replace=None, **kwargs):
+        """Intanciate a Runtime  
+        Parameters
+        ----------
+            attr_replace (dict): dictionary of attributes to replace in kwargs
+                e.g. attr_replace = { "id": "uuid"} => means that "id" in kwargs will be replaced by "uuid"
+            kwargs: arguments to be added as attributes
+        """
+        
+        # replace attributes in arguments received
+        if attr_replace: 
+            self._replace_attrs(kwargs, attr_replace)
+        
         # transform api string into an array
         if isinstance(kwargs.get('apis'), str):
             kwargs['apis'] = kwargs.get('apis').split(' ')
 
-        # check if we have all required properties
-        for k in self.__required_props:
-            if not k in kwargs:
-                raise MissingField(f"Runtime property {k} not in {str(kwargs)}")
-
         kwargs['uuid'] = uuid
         kwargs['type'] = MessageType.rt
+        
+        # check if we have all required properties
+        self._check_attrs(Runtime, kwargs)
         
         dict.__init__(self, kwargs)
 
@@ -44,6 +58,14 @@ class Runtime(dict):
     def name(self, rt_name):
         self['name'] = rt_name
 
+    @property
+    def type(self):
+        return self['type']
+
+    @type.setter
+    def type(self, rt_type):
+        self['type'] = rt_type
+        
     @property
     def runtime_type(self):
         return self['runtime_type']

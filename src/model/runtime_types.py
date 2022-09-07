@@ -1,5 +1,9 @@
-from enum import Enum
+"""
+*TL;DR
+Utility types used in runtime messages and models
+"""
 
+from enum import Enum
 class Result(str, Enum):
     """Result ok/error enum."""
     ok = 'ok'
