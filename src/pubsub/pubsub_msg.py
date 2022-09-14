@@ -25,3 +25,6 @@ class PubsubMessage(dict):
             return d
         except (KeyError, TypeError) as key_exc:
             raise MissingField(args) from key_exc
+
+    def __repr__(self) -> str:
+        return f"{self.topic}: {self.payload}"

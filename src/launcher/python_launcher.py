@@ -93,7 +93,7 @@ class PythonLauncher(ModuleLauncher):
 
         # start pubsub streamer that will publish/subscribe stdin, stdout, stderr topics
         if self._pubsubc:
-            self._streamer = PubsubStreamer(self._pubsubc, self._ctn_sock, self._module.topics())
+            self._streamer = PubsubStreamer(self._pubsubc, self._ctn_sock, self._module.topics)
                      
     def get_stats(self):
         docker_stats = self._docker_client.get_stats(self._module.uuid)

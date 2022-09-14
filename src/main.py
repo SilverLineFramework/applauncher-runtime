@@ -4,43 +4,38 @@ Main entrypoint; Starts the runtime
 """
 
 import argparse
-import uuid
+import json
 import logzero
 from logzero import logger
-import importlib
 
 import release
 from common.config import settings
 from dynaconf import ValidationError
 
-#from mqtt.listner import MQTTListner
-#from runtime.runtime_mngr import RuntimeMngr
+from pubsub import MQTTListner
+from runtime.runtime_mngr import RuntimeMngr
 
+# print settings with no password
+def print_settings():
+    s_dict = settings.as_dict()
+    s_dict['MQTT'].pop('password')
+    logger.debug("Runtime settings: ")
+    logger.debug(json.dumps(s_dict, indent=4))
+    
 def main(args):
     """ Main entry point of the app """    
-    #settings.load_file(path="settings.yaml")  
-    #settings.load_file(path=".secrets.yaml")  
-    #settings.load_file(path=".appsettings.yaml")  
-    
-#"settings.yaml", ".secrets.yaml", ".appsettings.yaml
-    
+
+    print_settings()
+
     # Set a minimum log level
     logzero.loglevel(logzero.INFO)
 
-    logger.info(str(settings.as_dict()))
-
-    # create launcher instance from settings option
-    #(launcher_module, launcher_class) = settings.get('launcher.class').rsplit('.', 1)
-    #logger.debug("[RuntimeMngr] Importing {}.{}".format(launcher_module, launcher_class))
-    #LauncherClass = getattr(importlib.import_module(launcher_module), launcher_class)
-    #launcher = LauncherClass()
-    #rtmngr = RuntimeMngr(launcher)
 
     # create runtime mngr instance
-    #rtmngr = RuntimeMngr()
+    rtmngr = RuntimeMngr()
 
     # pass runtime mngr as pubsub handler to mqtt client
-    #mqttc = MQTTListner(rtmngr, **settings.get('mqtt'))
+    mqttc = MQTTListner(rtmngr, **settings.get('mqtt'))
 
     input("Press Enter to continue...\n")
 

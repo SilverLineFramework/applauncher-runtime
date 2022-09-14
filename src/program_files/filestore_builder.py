@@ -5,6 +5,7 @@ Implements a ProgramFilesBuilder for the ARENA filestore
 import tempfile
 from urllib.parse import urlparse
 from urllib.request import urlopen
+from urllib.error import HTTPError
 from pathlib import Path
 import ssl
 from bs4 import BeautifulSoup
@@ -55,7 +56,11 @@ class FileStoreBuilder(ProgramFilesBuilder):
             url = url + '/'
 
         # download to folder inside given path
-        index_data = urlopen(url, context=ssl._create_unverified_context()).read()
+        try: 
+            index_data = urlopen(url, context=ssl._create_unverified_context()).read()
+        except HTTPError as http_error:
+            raise ProgramFileException(f"Error fetching {url}. Detail: {http_error}") from http_error
+        
         index_parsed = BeautifulSoup(index_data, "html.parser")
         links = index_parsed.find_all('a')
         if len(links) == 0:

@@ -1,7 +1,7 @@
 """
 Program files are collected (downloaded/copied/compressed/...) into a destination folder or tar file
 """
-from typing import List, Optional
+from typing import Optional
 import tempfile
 import os
 import shutil

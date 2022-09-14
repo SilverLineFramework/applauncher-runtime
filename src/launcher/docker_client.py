@@ -63,7 +63,7 @@ class DockerClient(QoSParams):
         try:
             self._client = docker.from_env()
         except docker.errors.DockerException as docker_exception:
-            raise LauncherException(f"[DockerClient] Error starting docker (is docker running ?). {docker_exception}") from docker_exception
+            raise LauncherException(f"[DockerClient] Error starting docker (is the docker daemon running ?). {docker_exception}") from docker_exception
         
     def wait_for_container(self, container, notify_call):
         """Called within dedicated thread to wait for a container to exit"""

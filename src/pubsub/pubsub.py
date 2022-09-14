@@ -57,7 +57,7 @@ class PubsubHandler(Protocol):
     """Calls the mqtt listner performs on the PubsubHandler to deliver notifications"""
 
     @abstractmethod
-    def pubsub_connected(self, listner: PubsubListner):
+    def pubsub_connected(self, client: PubsubListner):
         """When mqtt listner connects
             client:
                 mqtt listner instance if handler wants to save it

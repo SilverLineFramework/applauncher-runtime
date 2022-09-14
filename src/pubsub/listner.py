@@ -1,5 +1,6 @@
 """MQTT Client."""
 
+from subprocess import call
 import traceback
 import json
 import ssl as ssl_lib
@@ -41,7 +42,7 @@ class MQTTListner(paho.Client, PubsubListner):
     __subscribe_mid: Dict[int, str]
     
     def __init__(self,
-                topic_handler: PubsubHandler,
+                pubsub_handler: PubsubHandler,
                 error_topic: str = 'error_topic',
                 host: str = 'arenaxr.org',
                 port: int = 1883,
@@ -58,9 +59,8 @@ class MQTTListner(paho.Client, PubsubListner):
 
         logger.debug("Starting MQTT client...")
 
-        
-        self._th = topic_handler
-        if not topic_handler:
+        self.__pubsub_handler = pubsub_handler
+        if not pubsub_handler:
             logger.info("No topic handler provided! MQTT notifications will not be delivered.")
 
         if username and password:
@@ -71,13 +71,22 @@ class MQTTListner(paho.Client, PubsubListner):
         self.connect(host, port, 60)
 
         self.loop_start()
+        
+    def __pubsub_handler_call(self, handler_call: Callable, args):
+        if not self.__pubsub_handler:
+            logger.info(f"Call to {getattr(callable, '__name__', repr(callable))} skipped: no pubsub handler provided.")
+            
+        # check if method is bound
+        if hasattr(handler_call, '__self__'):
+            return handler_call(args)
+        else:
+            return handler_call(self.__pubsub_handler, args)
     
     def on_connect(self, mqttc, userctx, flags, rc) -> None:
         """Client connect callback."""
         if rc == 0:
             logger.debug("Connected.")
-            if self._th:
-                self._th.pubsub_connected(self._th, mqttc)
+            self.__pubsub_handler_call(handler_call=self.__pubsub_handler.pubsub_connected, args=(mqttc))
         else:
             logger.error(f"Bad connection returned code={rc}")
 
@@ -101,8 +110,8 @@ class MQTTListner(paho.Client, PubsubListner):
 
         if level == paho.MQTT_LOG_ER:
             logger.error(f"MQTT Error: {string}")
-            if self._th:
-                self._th.pubsub_error(self._th, "MQTT Error", string)
+            self.__pubsub_handler_call(handler_call=self.__pubsub_handler.pubsub_error, args=("MQTT Error", string))
+
             return
         if level == paho.MQTT_LOG_WARNING:
             logger.warning(string)
@@ -195,15 +204,13 @@ class MQTTListner(paho.Client, PubsubListner):
 
         if callable(handler):
             try:
-                # check if method is bound
-                if hasattr(handler, '__self__'):
-                    return handler(decoded_mqtt_msg)
-                else:
-                    return handler(self._th, decoded_mqtt_msg)
+                self.__pubsub_handler_call(handler, args = (decoded_mqtt_msg))
             # Runtime Exceptions are raised by handlers in response to
             # invalid request data (which has been detected).
             except RuntimeException as runtime_ex:
-                return runtime_ex.message
+                #return runtime_ex.message
+                return PubsubMessage(self._error_topic,
+                    {"desc": f"Runtime exception: {runtime_ex.desc}", "data": runtime_ex.data})
             # Uncaught exceptions should only be due to programmer error.
             except Exception as e:
                 logger.warning(traceback.format_exc())

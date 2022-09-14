@@ -7,7 +7,7 @@ from launcher import LauncherContext
 from model import Module
 from common import settings
 from pubsub.listner import MQTTListner
-from pubsub import PubsubMessage, PubsubHandler
+from pubsub import PubsubMessage
 class TestLauncher(unittest.TestCase):
     
     # fixed module uuid so topics are also fixed
@@ -24,7 +24,7 @@ class TestLauncher(unittest.TestCase):
     def setUpClass(self):
         # instantiate a python module for testing
         self.module = Module(uuid=self._MOD_UUID, name=self._MOD_NAME, filename='arena/py/pytestenv/pytest.py', filetype='PY')
-        self.mqttc = MQTTListner(topic_handler=self, error_topic=settings.topics.stdio, **settings.get('mqtt'))
+        self.mqttc = MQTTListner(topic_handler=self, error_topic=settings.topics.io, **settings.get('mqtt'))
         
         self.pubsub_connected_evt = threading.Event()        
         self.pubsub_out_received_evt = threading.Event()
@@ -32,10 +32,9 @@ class TestLauncher(unittest.TestCase):
         # kill test container just in case
         popen_result = str(subprocess.Popen(f"docker kill {self._MOD_NAME}", shell=True, stdout=subprocess.PIPE).stdout.read())
 
-
     def pubsub_connected(self, listner):
         # subscribe output topic to check container output
-        self.mqttc.message_handler_add(self.module.topics().get('stdout'), self.ctn_output)
+        self.mqttc.message_handler_add(self.module.topics.get('stdout'), self.ctn_output)
         self.pubsub_connected_evt.set()
 
     def pubsub_error(self, desc: str, data: str):
