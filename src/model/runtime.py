@@ -5,26 +5,39 @@ Runtime model; Store information about the runtime
 
 import uuid
 
-from .runtime_model import RuntimeModel
+from common.exception import MissingField
+from .model_base import ModelBase
 from .runtime_types import *
-
-class Runtime(RuntimeModel, dict):
+from .runtime_topics import RuntimeTopics
+from .sl_msgs import SlMsgs
+from pubsub.pubsub_msg import PubsubMessage
+class Runtime(ModelBase, dict):
     """A dictionary to hold runtime properties"""
 
     # required attributes
-    _required_attrs = ['uuid', 'type', 'name', 'runtime_type', 'max_nmodules', 'apis']
+    _required_attrs = ['uuid', 'name', 'runtime_type', 'max_nmodules', 'apis']
 
     # if True, only accepts declared attributes at init
     _strict = True
+
+    # attributes we send in register/unregister requests
+    __reg_attrs = ['uuid', 'type', 'name', 'runtime_type', 'max_nmodules', 'apis']
     
-    def __init__(self, uuid=str(uuid.uuid4()), attr_replace=None, **kwargs):
+    # attributes we send in keepalives
+    __ka_attrs = ['uuid', 'type', 'name', 'runtime_type', 'max_nmodules', 'apis']
+    
+    def __init__(self, topics: RuntimeTopics, uuid: str=str(uuid.uuid4()), attr_replace: dict=None, **kwargs):
         """Intanciate a Runtime  
         Parameters
         ----------
+            topics: RuntimeTopics object
+            uuid: runtime uuid
             attr_replace (dict): dictionary of attributes to replace in kwargs
                 e.g. attr_replace = { "id": "uuid"} => means that "id" in kwargs will be replaced by "uuid"
             kwargs: arguments to be added as attributes
         """
+        self.__rt_msgs = SlMsgs()
+        self.__topics = topics
         
         # replace attributes in arguments received
         if attr_replace: 
@@ -83,6 +96,30 @@ class Runtime(RuntimeModel, dict):
         self['max_nmodules'] = rt_max_nmodules
 
     @property
+    def reg_attempts(self):
+        return self['reg_attempts']
+
+    @reg_attempts.setter
+    def reg_attempts(self, rt_reg_attempts):
+        self['reg_attempts'] = rt_reg_attempts
+
+    @property
+    def reg_timeout_seconds(self):
+        return self['reg_timeout_seconds']
+
+    @reg_timeout_seconds.setter
+    def reg_timeout_seconds(self, rt_reg_timeout_seconds):
+        self['reg_timeout_seconds'] = rt_reg_timeout_seconds
+
+    @property
+    def realm(self):
+        return self['realm']
+
+    @realm.setter
+    def realm(self, rt_realm):
+        self['realm'] = rt_realm
+
+    @property
     def apis(self):
         return self['apis']
 
@@ -90,14 +127,33 @@ class Runtime(RuntimeModel, dict):
     def apis(self, rt_apis):
         self['apis'] = rt_apis
 
-    def _register_unregister_req(self, action):
-        reg_keys = ['uuid', 'name', 'apis', 'max_nmodules', 'runtime_type']
-        reg_req = dict(map(lambda k: (k, str(self.get(k))), reg_keys))
-        req = RequestMsg(self.reg_topic, action, reg_req)
-        return req
+    def _create_delete_runtime_msg(self, action) -> PubsubMessage:
+        """Create/Delete (according to action) runtime message.
+        Parameters
+        ----------
+            action (RuntimeTypes.Action): message action (create=register/delete=unregister)
+        """
+        # return a view of the object for a register/unregister request
+        reg_req = dict(map(lambda k: (k, self.get(k)), self.__reg_attrs))
+        return self.__rt_msgs.req(self.__topics.get('runtimes'), action, reg_req)
+            
+    def create_runtime_msg(self) -> PubsubMessage:
+        return self._create_delete_runtime_msg(Action.create)
 
-    def register_req(self):
-        return self._register_unregister_req(Action.create)
+    def delete_runtime_msg(self) -> PubsubMessage:
+        return self._create_delete_runtime_msg(Action.delete)
 
-    def unregister_req(self):
-        return self._register_unregister_req(Action.delete)
+    def confirm_module_msg(self, src_msg, result=Result.ok) -> PubsubMessage:
+        return self.__rt_msgs.resp(
+            self.__topics.modules, 
+            src_msg.payload['object_id'], 
+            src_msg.payload['data'], 
+            result)
+
+    def keepalive_msg(self, children) -> PubsubMessage:
+        keepalive = dict(map(lambda k: (k, self.get(k)), self.__ka_attrs))
+        # add children
+        keepalive['children'] = children
+        return self.__rt_msgs.req(self.__topics.get('keepalive'), Action.update, keepalive)
+        
+        pass

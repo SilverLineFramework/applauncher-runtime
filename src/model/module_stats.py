@@ -1,7 +1,7 @@
 
-from .runtime_model import RuntimeModel
+from .model_base import ModelBase
 
-class ModuleStats(RuntimeModel, dict):
+class ModuleStats(ModelBase, dict):
     """A dictionary to hold module stats"""
 
     # required attributes
