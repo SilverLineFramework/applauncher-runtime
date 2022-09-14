@@ -5,102 +5,170 @@ import uuid
 import threading
 import time
 import atexit
-from common import settings, FileTypes, Result, RuntimeMsgs
-from pubsub import PubsubHandler
+from typing import Dict
 
-from model import Runtime
+from common import settings, InvalidArgument
+from model.runtime_types import Result
+from model.runtime_topics import RuntimeTopics
+from model import Runtime, Module
+from pubsub import PubsubHandler
+from launcher import LauncherContext
+from pubsub.pubsub import PubsubListner
 
 class RuntimeMngr(PubsubHandler):
     """Runtime Manager; handles topic messages"""
 
-    def __init__(self, module_launcher=None):
-        self.modules = [] # list of modules
-        self.moduleLauncher = module_launcher
+    def __init__(self, runtime_topics: RuntimeTopics=RuntimeTopics(**settings.get('topics')), **kwargs):
+        self.__modules: Dict[str, MngrModule] = {} # dictionary of MngrModules by module uuid
+        self.__module_io_base_topic = runtime_topics.io
         
-        #rt_settings = {**settings.get('runtime'), 'topics': settings.get('topics')}
-        self.rt = Runtime(**settings.get('runtime'))
-        self.rt_messages = RuntimeMsgs(settings.get('topics'))
+        # arguments passed in constructor will override settings
+        runtime_args = {**settings.get('runtime'), **kwargs} 
+        self.__rt = Runtime(topics=runtime_topics, **runtime_args)
 
         # register exit handler to send delete runtime request
-        atexit.register(self.exit_handler)
+        atexit.register(self.__exit_handler)
 
-    def exit_handler(self):
+    def __exit_handler(self):
+        
+        # try to gracefully stop threads
+        self.__reg_event.set() # in case we are still tyring to register
+        self.__ka_exit.set()
+        
+        # publish last will before exit
         if hasattr(self, "lastwill_msg"):
-            self.pubsub_client.message_publish(self.lastwill_msg)
+            self.__pubsub_client.message_publish(self.__lastwill_msg)
             time.sleep(.5) # need time to publish
 
     def pubsub_connected(self, client):
-        self.pubsub_client = client
+        self.__pubsub_client = client
 
         # set last will; sent if we dont disconnect properly
-        self.lastwill_msg = self.rt.unregister_req()
-        self.pubsub_client.last_will_set(self.lastwill_msg)
+        self.__lastwill_msg = self.__rt.delete_runtime_msg()
+        self.__pubsub_client.last_will_set(self.__lastwill_msg)
 
-        # subscribe to reg to receive registration confirmation
-        self.pubsub_client.message_handler_add(self.rt_topics.reg_topic, self.reg)
+        # subscribe to runtimes to receive registration confirmation
+        self.__pubsub_client.message_handler_add(settings.topics.runtimes, self.reg)
 
         # start a thread to send registration messages once we are connected
-        self.reg_event = threading.Event()
-        self.reg_thread = threading.Thread(target=self._register_runtime,
+        self.__reg_event = threading.Event()
+        self.__reg_thread = threading.Thread(target=self.__register_runtime,
             args=(
-                self.rt.register_req(),
-                settings.get('runtime.reg_timeout_seconds'),))
-        self.reg_thread.start()
+                self.__rt.create_runtime_msg(),
+                settings.get('runtime.reg_timeout_seconds', 5),
+                settings.get('runtime.reg_attempts', 0),))
+        self.__reg_thread.start()
 
     def pubsub_error(self, desc, data):
+        logger.error(desc, data)
         pass
 
-    def _register_runtime(self, reg_msg, timeout):
+    def __keepalive(self, ka_interval_secs):
+        """Keepalive thread; sends keepalive messages periodically """
+        logger.info("Starting keepalive.")
+        
+        while True:
+            # TODO: add stats
+            #children = []
+            #for module in self.__modules:
+            #    mod_ka = module.keepalive_attrs({})
+            #    children.append(mod_ka)
+            exit_flag = self.__ka_exit.wait(ka_interval_secs)
+            if exit_flag: break # event is set; exit
+            
+            #children = [mngr_mod.module.keepalive_attrs({}) for mngr_mod in self.__modules]
+            children = [mngr_mod.module.keepalive_attrs({}) for _, mngr_mod in self.__modules.items()]
+            keepalive_msg = self.__rt.keepalive_msg(children)
+            logger.debug("Sending keepalive.")
+            self.__pubsub_client.message_publish(keepalive_msg)
+            
+    def __register_runtime(self, reg_msg, timeout_secs, reg_attempts):
         """Register thread; sends register messages every timeout interval
            until register event is set"""
 
         while True:
+            if reg_attempts > 0: 
+                reg_attempts = reg_attempts - 1
+                if reg_attempts == 0: break
             logger.info("Runtime attempting to register...");
-            self.pubsub_client.message_publish(reg_msg)
-            time.sleep(timeout)
-            evt_flag = self.reg_event.wait(timeout)
+            self.__pubsub_client.message_publish(reg_msg)
+            evt_flag = self.__reg_event.wait(timeout_secs)
             if evt_flag: break # event is set; registration response received
 
         # remove subscription to reg topic
-        self.pubsub_client.message_handler_remove(self.rt.reg_topic)
+        self.__pubsub_client.message_handler_remove(settings.topics.runtimes)
 
         # subscribe to runtime control topic to receive module requests
-        self.pubsub_client.message_handler_add(self.rt.ctl_topic, self.control)
-
-        # subscribe to runtime stdin topic (TODO: send things here)
-        self.pubsub_client.message_handler_add(self.rt.stdin_topic, self.control)
-
+        self.__pubsub_client.message_handler_add(settings.topics.modules, self.control)
+                    
         logger.info("Runtime registration done.");
-
-
+        
+        # start keepalive
+        ka_interval_sec = self.__reg_details.get('ka_interval_sec')
+        if ka_interval_sec:
+            self.__ka_exit = threading.Event()
+            self.__ka_thread = threading.Thread(target=self.__keepalive,
+                args=(ka_interval_sec,))
+            self.__ka_thread.start()
+        
     def reg(self, decoded_msg):
         msg_data = decoded_msg.get('data')
         if msg_data.get('result') == Result.ok:
-            self.reg_event.set()
+            self.__reg_details = msg_data.get('details', {})
+            self.__reg_event.set()
+
+    def control(self, msg):
+        """Handle control messages."""
+        # arts_resp -> is a message we sent, should be ignored
+        msg_type = msg.get('type')
+        if msg_type == 'arts_resp':
+            return None
+
+        print("\n[Control] {}".format(msg.payload))
+
+        if msg_type == 'arts_req':
+            action = msg.get('action')
+            if action == 'create':
+                return self.__create_module(msg.get('data'))
+            elif action == 'delete':
+                return self.__delete_module(msg.get('data', {}))
+            #elif action == 'exited':
+            #    return self.__exited_module(msg)
+            else:
+                raise InvalidArgument('action', action)
+        else:
+            raise InvalidArgument('type', msg_type)
 
     """
     ********************************
     """
 
-    def __create_module_ack(self, msg):
+    def __create_module_ack(self, mod):
         """Send ACK after creating module."""
 
         """TODO"""
 
         return None
 
-    def __create_module(self, msg):
+    def __module_exit(self, mod_uuid):
+        print(f"module {mod_uuid} exited")
+         
+    def __create_module(self, mod):
         """Handle create message."""
 
-        """TODO"""
-        """
-        return messages.Request(
-            "{}/{}".format(msg.topic, module.parent.uuid), "create",
-            ModuleSerializer(module, many=False).data)
-        """
+        print("HERE", mod)
+        mod_uuid = mod.get('uuid')
+        if mod_uuid: 
+            if self.__modules.get(mod_uuid):
+                raise InvalidArgument('uuid', 'Module {} already exists'.format(mod_uuid))
+        module = Module(io_base_topic = self.__module_io_base_topic, **mod)
+
+        self.__modules[module.uuid] = MngrModule(module, self.__pubsub_client)
+        self.__modules[module.uuid].start_module(lambda: self.__module_exit(module.uuid))
+        
         return None
 
-    def __delete_module(self, msg):
+    def __delete_module(self, mod):
         """Handle delete message."""
 
         """TODO"""
@@ -112,91 +180,22 @@ class RuntimeMngr(PubsubHandler):
                 "send_to_runtime": send_rt})
         """
 
-    def _create_module(self, module_uuid, module_name, fn='', fid='', ft=FileTypes.WA, args=[], env=[]):
-        rt = list(filter(lambda i: i.uuid == module_uuid, self.modules))
-        if rt:
-            raise Exception('UUID {} already exists'.format(module_uuid))
-        else:
-            # create module
-            module = Module(module_uuid, module_name, self.parent, fn, fid, ft, args, env)
-            self.modules.append(Module(module_uuid, module_name))
-            delMsg = ModulesView().json_req(module, Action.delete)
-            try:
-                self.moduleLauncher.run(module, self.parent.dbg_topic, self.parent.ctl_topic, delMsg)
-            except Exception as e:
-                self.delete(module.uuid, False)
-                raise e
-            return module
+class MngrModule():
+    """Keep a module instance and a module laucher for each module started"""        
+    
+    def __init__(self, module: Module, pubsubc: PubsubListner):
+        """
+            Arguments
+            ---------
+                module:
+                    module object
+                pubsubc:
+                    a pubsub client object the module streamer uses to publish messages
+        """
+        self.module = module
+        
+        # setup launcher, force container name to match module name
+        self.module_launcher = LauncherContext.get_launcher_for_module(module, pubsubc=pubsubc)
 
-    def _read_modules(self, module_uuid):
-        rt = list(filter(lambda i: i.uuid == module_uuid, self.modules))
-        if rt:
-            return rt[0]
-        else:
-            raise Exception('UUID {} not found'.format(module_uuid))
-
-    def _update_module(self, module_uuid, module_name, fn='', fid='', ft=FileTypes.WA, args=[]):
-        module_idx = list(filter(lambda i_i: i_i[1].uuid == module_uuid, enumerate(self.modules)))
-        if module_idx:
-            i, module_to_update = module_idx[0][0], module_idx[0][1]
-            self.modules[i] = Module(module_uuid, module_name)
-        else:
-            raise Exception('UUID {} not found'.format(module_uuid))
-
-    def _update_module_obj(self, module_obj):
-        module_idx = list(filter(lambda i_i: i_i[1].uuid == module_obj.uuid, enumerate(self.modules)))
-        if module_idx:
-            i, module_to_update = module_idx[0][0], module_idx[0][1]
-            self.modules[i] = module_obj
-        else:
-            raise Exception('UUID {} not found'.format(module_obj.uuid))
-
-    def _delete_module(self, module_uuid, kill=True):
-        module_idx = list(filter(lambda i_i: i_i[1].uuid == module_uuid, enumerate(self.modules)))
-        if module_idx:
-            i, rt_to_delete = module_idx[0][0], module_idx[0][1]
-            del self.modules[i]
-            if (kill):
-                self.moduleLauncher.kill(module_uuid)
-        else:
-            raise Exception('UUID {} not found'.format(module_uuid))
-
-    def __exit_module(self, msg):
-        """Module terminated."""
-
-        """TODO"""
-
-        return None
-
-    def control(self, msg):
-        """Handle control messages."""
-        # arts_resp -> is a message we sent, should be ignored
-        msg_type = msg.get('type')
-        if msg_type == 'arts_resp':
-            return None
-
-        print("\n[Control] {}".format(msg.payload))
-
-        if msg_type == 'runtime_resp':
-            result = msg.get('data', 'result')
-            if result == "no file":
-                # Send the WASM/AOT file over
-                return self.__create_module(msg, True)
-            else:
-                return self.__create_module_ack(msg)
-        elif msg_type == 'arts_req':
-            action = msg.get('action')
-            if action == 'create':
-                return self.__create_module(msg, False)
-            elif action == 'delete':
-                return self.__delete_module(msg)
-            elif action == 'exited':
-                return self.__exited_module(msg)
-            else:
-                raise messages.InvalidArgument('action', action)
-        else:
-            raise messages.InvalidArgument('type', msg_type)
-
-    def keepalive(self, msg):
-        """Handle keepalive message."""
-        return None
+    def start_module(self, on_module_exit_call):
+        return self.module_launcher.start_module(on_module_exit_call)
