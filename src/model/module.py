@@ -180,6 +180,6 @@ class Module(ModelBase, dict):
         return self.__topics
     
     def keepalive_attrs(self, mod_stats):
-        keepalive = dict(map(lambda k: (k, self.get(k)), self.__ka_attrs))
+        keepalive = dict(map(lambda k: (k, self.get(k)), self._ka_attrs))
         return { **keepalive, **mod_stats }
         

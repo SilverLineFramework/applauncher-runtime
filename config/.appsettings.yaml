@@ -60,3 +60,6 @@ topics:
 # where/how we keep program files
 repository:
   class: program_files.filestore_builder.FileStoreBuilder # instanciate a Repo bouilder class from: module.submodule.Class
+
+# logzero log level: CRITICAL (less messages), ERROR, WARNING, INFO, DEBUG (more messages)
+loglevel: "DEBUG" 

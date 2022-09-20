@@ -30,7 +30,9 @@ def main(args):
     print_settings()
 
     # Set a minimum log level
-    logzero.loglevel(logzero.INFO)
+    
+    loglevel = getattr(logzero, settings.loglevel)
+    logzero.loglevel(loglevel)
 
     # create runtime mngr instance
     rtmngr = RuntimeMngr()

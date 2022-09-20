@@ -8,6 +8,7 @@ import socket
 import os
 from typing import Dict
 from enum import Enum
+from logzero import logger
 
 from pubsub.pubsub import PubsubListner
 from .pubsub_msg import PubsubMessage
@@ -53,6 +54,8 @@ class PubsubStreamer:
         self._topics = topics
         self._multiplexed = multiplexed
         self._encode_decode = encode_decode
+        
+        logger.debug(f"Starting IO Streamer at {topics}")
         
         # create thread to start streaming stdout and stderr
         read_thread = threading.Thread(target=self.output)
