@@ -3,11 +3,10 @@ import threading
 import subprocess
 from logzero import logger
 
-from launcher import LauncherContext
+from launcher.launcher import LauncherContext
 from model import Module
 from common import settings
-from pubsub.listner import MQTTListner
-from pubsub import PubsubMessage
+from pubsub import MQTTListner, PubsubMessage
 class TestLauncher(unittest.TestCase):
     
     # fixed module uuid so topics are also fixed
@@ -24,13 +23,13 @@ class TestLauncher(unittest.TestCase):
     def setUpClass(self):
         # instantiate a python module for testing
         self.module = Module(uuid=self._MOD_UUID, name=self._MOD_NAME, filename='arena/py/pytestenv/pytest.py', filetype='PY')
-        self.mqttc = MQTTListner(topic_handler=self, error_topic=settings.topics.io, **settings.get('mqtt'))
+        self.mqttc = MQTTListner(pubsub_handler=self, error_topic=settings.topics.io, **settings.get('mqtt'))
         
         self.pubsub_connected_evt = threading.Event()        
         self.pubsub_out_received_evt = threading.Event()
         
         # kill test container just in case
-        popen_result = str(subprocess.Popen(f"docker kill {self._MOD_NAME}", shell=True, stdout=subprocess.PIPE).stdout.read())
+        popen_result = str(subprocess.Popen(f"docker kill {self._MOD_NAME} 2>/dev/null", shell=True, stdout=subprocess.PIPE).stdout.read())
 
     def pubsub_connected(self, listner):
         # subscribe output topic to check container output

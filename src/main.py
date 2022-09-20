@@ -7,12 +7,14 @@ import argparse
 import json
 import logzero
 from logzero import logger
+import time
 
 import release
 from common.config import settings
 from dynaconf import ValidationError
 
-from pubsub import MQTTListner
+#from pubsub import MQTTListner
+from pubsub.listner import MQTTListner
 from runtime.runtime_mngr import RuntimeMngr
 
 # print settings with no password
@@ -30,14 +32,19 @@ def main(args):
     # Set a minimum log level
     logzero.loglevel(logzero.INFO)
 
-
     # create runtime mngr instance
     rtmngr = RuntimeMngr()
 
     # pass runtime mngr as pubsub handler to mqtt client
     mqttc = MQTTListner(rtmngr, **settings.get('mqtt'))
 
-    input("Press Enter to continue...\n")
+    # some time to init
+    time.sleep(2)
+    
+    while True:
+        choice = input("Enter Q to quit.")
+        if choice.lower() == "q":
+            break
 
 if __name__ == "__main__":
     """ This is executed when run from the command line """

@@ -8,7 +8,6 @@ import os
 from pathlib import Path
 import shutil
 import requests
-
 class FileInfo():
     """Hold information about a file that we apply an action to"""
 

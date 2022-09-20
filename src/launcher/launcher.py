@@ -9,10 +9,10 @@ from enum import Enum
 from logzero import logger
 from dynaconf import LazySettings
 
-from model import Module
+from model.module import Module
 from common import settings, LauncherException, ClassUtils
 from program_files import ProgramFilesBuilder
-from pubsub.pubsub import PubsubListner
+from pubsub import PubsubListner
 
 class ModuleLauncher(Protocol):
     """

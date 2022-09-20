@@ -14,7 +14,7 @@ class TestRuntimeMngr(unittest.TestCase):
                                     keepalive="realm/proc/keepalive/c950272a-905b-4cc3-8b2d-c38a779806ef")
         
         # instantiate a runtime manager for testing
-        self.rtmngr = RuntimeMngr(topics = self.topics, uuid="c950272a-905b-4cc3-8b2d-c38a779806ef")
+        self.rtmngr = RuntimeMngr(runtime_topics = self.topics, uuid="c950272a-905b-4cc3-8b2d-c38a779806ef")
         
         # instantiate a python module for testing 
         self.module = Module(io_base_topic = self.topics.io, uuid='070aebda-390c-4529-b6ea-730eede590a8', name='test_mod', filename='arena/image-switcher', filetype='PY')

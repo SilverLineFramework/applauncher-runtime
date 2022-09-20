@@ -3,7 +3,6 @@
 Runtime exceptions we handle; Deliver error message and do not cause the runtime to stop
 """
 from logzero import logger
-
 class RuntimeException(Exception):
     """Base class for runtime exceptions."""
 
@@ -11,7 +10,10 @@ class RuntimeException(Exception):
         super().__init__(description)
         self.desc = description
         self.data = data
-        logger.error(data)
+        logger.error(f"{description}: {data}")
+        
+    def error_msg_payload(self):
+        return {"desc": f"Runtime exception: {self.desc}", "data": self.data}
 
 class MissingField(RuntimeException):
     """Required field is missing."""

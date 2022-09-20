@@ -5,12 +5,11 @@ Runtime model; Store information about the runtime
 
 import uuid
 
-from common.exception import MissingField
 from .model_base import ModelBase
 from .runtime_types import *
 from .runtime_topics import RuntimeTopics
 from .sl_msgs import SlMsgs
-from pubsub.pubsub_msg import PubsubMessage
+from pubsub import PubsubMessage
 class Runtime(ModelBase, dict):
     """A dictionary to hold runtime properties"""
 

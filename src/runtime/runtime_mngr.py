@@ -8,19 +8,20 @@ import atexit
 from typing import Dict
 
 from common import settings, InvalidArgument
-from model.runtime_types import Result
-from model.runtime_topics import RuntimeTopics
+from model import Result, RuntimeTopics
 from model import Runtime, Module
 from pubsub import PubsubHandler
 from launcher import LauncherContext
-from pubsub.pubsub import PubsubListner
-
+from pubsub import PubsubListner
 class RuntimeMngr(PubsubHandler):
     """Runtime Manager; handles topic messages"""
 
     def __init__(self, runtime_topics: RuntimeTopics=RuntimeTopics(**settings.get('topics')), **kwargs):
         self.__modules: Dict[str, MngrModule] = {} # dictionary of MngrModules by module uuid
         self.__module_io_base_topic = runtime_topics.io
+        self.__lastwill_msg = None
+        self.__reg_event = None
+        self.__ka_exit = None
         
         # arguments passed in constructor will override settings
         runtime_args = {**settings.get('runtime'), **kwargs} 
@@ -32,17 +33,17 @@ class RuntimeMngr(PubsubHandler):
     def __exit_handler(self):
         
         # try to gracefully stop threads
-        self.__reg_event.set() # in case we are still tyring to register
-        self.__ka_exit.set()
+        if self.__reg_event != None: self.__reg_event.set() # in case we are still tyring to register
+        if self.__ka_exit != None: self.__ka_exit.set()
         
         # publish last will before exit
-        if hasattr(self, "lastwill_msg"):
+        if self.__lastwill_msg != None:
             self.__pubsub_client.message_publish(self.__lastwill_msg)
             time.sleep(.5) # need time to publish
 
     def pubsub_connected(self, client):
         self.__pubsub_client = client
-
+        
         # set last will; sent if we dont disconnect properly
         self.__lastwill_msg = self.__rt.delete_runtime_msg()
         self.__pubsub_client.last_will_set(self.__lastwill_msg)
@@ -156,7 +157,6 @@ class RuntimeMngr(PubsubHandler):
     def __create_module(self, mod):
         """Handle create message."""
 
-        print("HERE", mod)
         mod_uuid = mod.get('uuid')
         if mod_uuid: 
             if self.__modules.get(mod_uuid):

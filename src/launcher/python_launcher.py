@@ -13,8 +13,7 @@ from model import Module, ModuleStats
 from common import settings, ClassUtils
 from .launcher import ModuleLauncher
 from .docker_client import DockerClient
-from pubsub.pubsub_streamer import PubsubStreamer
-from pubsub.pubsub import PubsubListner
+from pubsub import PubsubStreamer, PubsubListner
 class PythonLauncher(ModuleLauncher):
     """
         Implements a launcher for python programs that starts the python programs in a container

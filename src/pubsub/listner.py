@@ -14,7 +14,6 @@ from common import RuntimeException
 
 from pubsub.pubsub_msg import PubsubMessage
 from pubsub.pubsub import PubsubListner, PubsubHandler
-
 class MQTTListner(paho.Client, PubsubListner):
     """MQTT client class extending mqtt.Client. Implements PubsubListner methods.
 
@@ -99,6 +98,7 @@ class MQTTListner(paho.Client, PubsubListner):
             payload = json.dumps(res.payload)
             print(f"[Response] {str(res.topic)}: {payload}")
             self.publish(res.topic, payload)
+        
 
     def on_subscribe(self, mqttc, obj, mid, granted_qos) -> None:
         """Subscribe callback."""
@@ -207,15 +207,14 @@ class MQTTListner(paho.Client, PubsubListner):
                 self.__pubsub_handler_call(handler, args = (decoded_mqtt_msg))
             # Runtime Exceptions are raised by handlers in response to
             # invalid request data (which has been detected).
-            except RuntimeException as runtime_ex:
-                #return runtime_ex.message
-                return PubsubMessage(self._error_topic,
-                    {"desc": f"Runtime exception: {runtime_ex.desc}", "data": runtime_ex.data})
+            except RuntimeException as rte:
+                return PubsubMessage(self._error_topic, rte.error_msg_payload())
+            
             # Uncaught exceptions should only be due to programmer error.
             except Exception as e:
                 logger.warning(traceback.format_exc())
                 logger.warning(f"Input message: {str(decoded_mqtt_msg.payload)}")
-                return PubsubMessage(self._error_topic,
+                return PubsubMessage(self._error_topic, 
                     {"desc": "Uncaught exception", "data": str(e)})
         else:
             return PubsubMessage(self._error_topic, {"desc": "Invalid topic", "data": msg.topic})

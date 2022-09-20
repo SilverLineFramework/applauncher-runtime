@@ -11,7 +11,6 @@ from enum import Enum
 
 from pubsub.pubsub import PubsubListner
 from .pubsub_msg import PubsubMessage
-
 class Streams(str, Enum):
     """Streams enum."""
     stdout = 'stdout'

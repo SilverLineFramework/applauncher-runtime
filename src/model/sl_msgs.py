@@ -6,7 +6,7 @@ import json
 
 from pubsub.pubsub_msg import PubsubMessage
 from common import MissingField
-from model.runtime_types import Action, Result
+from model.runtime_types import Result
 
 class SlMsgs:
 

@@ -23,6 +23,5 @@ class ClassUtils:
         try:
             the_class = getattr(importlib.import_module(launcher_module), launcher_class)
         except ModuleNotFoundError as import_exception:
-            raise LauncherException(f"No launcher class found \
-                    for {class_path}") from import_exception
+            raise LauncherException(f"No launcher class found for {class_path}") from import_exception
         return the_class(**kwargs)
