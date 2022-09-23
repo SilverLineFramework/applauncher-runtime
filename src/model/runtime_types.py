@@ -14,9 +14,13 @@ class Action():
     update = 'update'
 
 class MessageType():
-    """Message type (runtime/module) enum."""
+    """Message type enum."""
     rt = 'runtime'
     mod = 'module'
+    rt_request = 'runtime_req'
+    rt_response = 'runtime_resp'
+    orch_request = 'arts_req'
+    orch_response = 'arts_resp'
 
 class FileTypes():
     """File types enum."""

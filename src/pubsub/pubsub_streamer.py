@@ -63,7 +63,7 @@ class PubsubStreamer:
         
         # subscribe to stdin topic and add handler to route messages to socket
         self._pubsub_client.message_handler_add(self._topics.get(Streams.stdin), self.input)
-        
+                        
     def output(self) -> None:
         """ Read output from socket, publish to mqtt 
         
@@ -90,6 +90,9 @@ class PubsubStreamer:
                 plen = int.from_bytes(header[4:8], byteorder='big')
                 payload_bytes = os.read(self._sock.fileno(), plen)
             else: payload_bytes = os.read(self._sock.fileno(), 4096)
+
+        logger.debug(f"Streammer for {self._topics} **cleanup**.")
+        self._pubsub_client.message_handler_remove(self._topics.get(Streams.stdin))            
             
     def input(self, msg: PubsubMessage) -> None:
         """ Receive input msgs from mqtt, output to socket """

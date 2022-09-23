@@ -49,8 +49,8 @@ class DockerClient(QoSParams):
     
     def __init__(self, docker_settings: dict) -> None:
         self._settings = docker_settings
-        self._containers = {}
-        self._stats = {}
+        self._container: docker.DockerClient = {}
+        self._stats: Dict[str, float] = {}
         
         # image to run
         self.image = self._settings.get(
@@ -73,9 +73,13 @@ class DockerClient(QoSParams):
         
     def __del__(self) -> None:
         """ Cleanup """
-        # cleanup containers
-        for key in self._containers:
-            self._containers[key].stop() # should delete the container; auto_remove = True
+        # cleanup container
+        if self._container:     
+            try:
+                self._container.stop() # should delete the container; auto_remove = True
+            except docker.errors.NotFound as docker_err:
+                # container might be stopped already; skipping for now
+                pass 
 
     def start_attached(self, command: str, id: str=str(uuid.uuid4()), workdir_mount_source: str=None, exit_notify: Callable=None,  **kwargs) -> socket.SocketIO:
         """
@@ -101,10 +105,7 @@ class DockerClient(QoSParams):
 
             Returns
                 A socket attached to the container's stdin/stdout
-        """
-        if id in self._containers:
-            raise LauncherException(f"[DockerClient] Duplicate ID supplied!")
-        
+        """        
         if workdir_mount_source:
             if 'volumes' in kwargs:
                 # append workdir mount to caller-provided volumes
@@ -116,18 +117,18 @@ class DockerClient(QoSParams):
         run_options = {**kwargs, **self._run_opts}
 
         # run container
-        self._containers[id] = self._client.containers.run(image=self.image, command=command, **run_options)
+        self._container = self._client.containers.run(image=self.image, command=command, **run_options)
 
         # attach socket
-        sock = self._containers[id].attach_socket(params=DockerClient._CTN_SOCK_OPTS)
+        sock = self._container.attach_socket(params=DockerClient._CTN_SOCK_OPTS)
 
         # setup thread to wait for container to exit
         if exit_notify:
-            monitor_thread = threading.Thread(target=self.wait_for_container, args=(self._containers[id],exit_notify))
+            monitor_thread = threading.Thread(target=self.wait_for_container, args=(self._container,exit_notify))
             monitor_thread.start()
           
         # init stats
-        self._stats[id] = { 'previous_cpu': 0.0, 'previous_system': 0.0 }
+        self._stats = { 'previous_cpu': 0.0, 'previous_system': 0.0 }
         
         return sock
 
@@ -163,34 +164,36 @@ class DockerClient(QoSParams):
             tp += data["tx_packets"]
         return { 'rx_bytes': rb, 'tx_bytes': tb, 'rx_packets': rp, 'tx_packets': tp }
 
-    def get_stats(self, id: str) -> Dict:
-        if not id in self._containers:
-            raise LauncherException(f"[DockerClient] Unknown ID supplied!")
+    def get_stats(self) -> Dict:
+        if not self._container:
+            raise LauncherException(f"[DockerClient] Container not running!")
         
-        stats = self._containers[id].stats(decode=None, stream = False)
-        cpu_percent, self._stats[id]['previous_cpu'], self._stats[id]['previous_system'] = self.__get_cpu_stats(stats, self._stats[id]['previous_cpu'], self._stats[id]['previous_system'])
+        stats = self._container.stats(decode=None, stream = False)
+        cpu_percent, self._stats['previous_cpu'], self._stats['previous_system'] = self.__get_cpu_stats(stats, self._stats['previous_cpu'], self._stats['previous_system'])
         net_stats = self.__get_network_stats(stats)
         return { 'cpu_percent': cpu_percent, **net_stats }
     
-    def stop(self, id: str):
-        if not id in self._containers:
-            raise LauncherException(f"[DockerClient] Unknown ID supplied!")
+    def stop(self):
+        if not self._container:
+            raise LauncherException(f"[DockerClient] Container not running!")
         
-        ctrn = self._containers.pop(id)
-        ctrn.stop()
+        try:
+            self._container.stop()            
+        except docker.errors.NotFound as docker_err:
+            # container might be stopped already
+            raise LauncherException(f"[DockerClient] Container not running!") from docker_err
+            pass 
+        
 
-    def is_created_or_running(self, id: str=None, ctnr=None):
+    def is_created_or_running(self):
         """ return True if container is created or running; False otherwise
             can receive id previously provided with start or a container reference
         """
         status = 'unknown'
-        if id:
-            if not id in self._containers:
-                raise LauncherException(f"[DockerClient] Unknown ID supplied!")
+        if not self._container:
+                raise LauncherException(f"[DockerClient] Container not running!")
         
-            status = self._containers[id].status
-        if ctnr:
-            status = ctnr.status
+        status = self._container.status
         
         if status == DockerContainerStatus.running or status == DockerContainerStatus.created: 
             return True

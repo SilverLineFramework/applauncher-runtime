@@ -6,7 +6,7 @@ import json
 
 from pubsub.pubsub_msg import PubsubMessage
 from common import MissingField
-from model.runtime_types import Result
+from model.runtime_types import Result, MessageType
 
 class SlMsgs:
 
@@ -52,12 +52,12 @@ class SlMsgs:
         """Error message to stderr topic."""
         return PubsubMessage(self.topics.stderr, data)
 
-    def resp(self, topic, src_uuid, details, result=Result.ok, convert=False) -> PubsubMessage:
+    def resp(self, topic, src_uuid, action, details, result=Result.ok, convert=False) -> PubsubMessage:
         """Response base message."""
         if convert:
             self.__convert_str_attrs(details)
         return PubsubMessage(topic, {
-            "object_id": str(src_uuid), "type": "runtime_resp",
+            "object_id": str(src_uuid), "action": action, "type": MessageType.rt_response,
             "data": {"result": result, "details": details}
         })
 
@@ -69,7 +69,7 @@ class SlMsgs:
             self.__convert_str_attrs(data)
 
         return PubsubMessage(topic, {
-            "object_id": str(uuid.uuid4()), "action": action, "type": "runtime_req",
+            "object_id": str(uuid.uuid4()), "action": action, "type": MessageType.rt_request,
             "data": data
         })
     

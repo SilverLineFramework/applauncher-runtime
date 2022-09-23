@@ -1,7 +1,14 @@
 """
 *TL;DR
-Implements a launcher for a python program;
-Prepares the program files and container to run the pythom program
+Implements a launcher for a python program inside a container;
+Prepares the program files and container to run the python program.
+Instanciates a docker client to startup the container. 
+
+We instanciate a launcher and a docker client for each module (this 
+allows for for better error recovery; e.g. a module might fail to 
+start due to unavailability of the docker service, a later retry 
+will be successful when docker service comes back up; we dont implement
+these retries)
 """
 
 from typing import Dict, Callable
@@ -94,8 +101,8 @@ class PythonLauncher(ModuleLauncher):
         if self._pubsubc:
             self._streamer = PubsubStreamer(self._pubsubc, self._ctn_sock, self._module.topics)
                      
-    def get_stats(self):
-        docker_stats = self._docker_client.get_stats(self._module.uuid)
+    def get_stats(self) -> ModuleStats:
+        docker_stats = self._docker_client.get_stats()
         
         # convert into ModuleStats
         return ModuleStats( cpu_percent=docker_stats['cpu_percent'], 
@@ -106,7 +113,7 @@ class PythonLauncher(ModuleLauncher):
                         )
         
     def is_created_or_running(self) -> bool:
-        return self._docker_client.is_created_or_running(self._module.uuid)
+        return self._docker_client.is_created_or_running()
     
     def get_settings(self) -> Dict:
         return self._settings
@@ -114,4 +121,4 @@ class PythonLauncher(ModuleLauncher):
     def stop_module(self):
         """Stop module"""
         logger.debug(f"Stopping module {self._module.name}.")
-        self._docker_client.stop(self._module.uuid)
+        self._docker_client.stop()

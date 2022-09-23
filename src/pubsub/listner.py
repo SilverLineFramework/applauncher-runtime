@@ -93,17 +93,14 @@ class MQTTListner(paho.Client, PubsubListner):
         """MQTT Message handler."""
 
         res = self.__on_message(msg)
-        # only publish if not `None`
-        if res:
-            payload = json.dumps(res.payload)
-            print(f"[Response] {str(res.topic)}: {payload}")
-            self.publish(res.topic, payload)
-        
 
+        # only publish if not `None`
+        if res != None:
+            self.message_publish(res)
+        
     def on_subscribe(self, mqttc, obj, mid, granted_qos) -> None:
         """Subscribe callback."""
-        logger.debug(f"Subscribed: \
-                    {self.__subscribe_mid.get(mid, 'to a topic.')}")
+        logger.debug(f"Subscribed: {self.__subscribe_mid.get(mid, 'to a topic.')}")
 
     def on_log(self, mqttc, obj, level, string) -> None:
         """Logging callback."""
@@ -204,7 +201,7 @@ class MQTTListner(paho.Client, PubsubListner):
 
         if callable(handler):
             try:
-                self.__pubsub_handler_call(handler, args = (decoded_mqtt_msg))
+                return self.__pubsub_handler_call(handler, args = (decoded_mqtt_msg))
             # Runtime Exceptions are raised by handlers in response to
             # invalid request data (which has been detected).
             except RuntimeException as rte:

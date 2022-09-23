@@ -26,7 +26,7 @@ class InvalidArgument(RuntimeException):
 
     def __init__(self, arg_name, arg_value):
         super().__init__(
-            {"desc": "invalid {}".format(arg_name), "data": arg_value})
+            description="invalid {}".format(arg_name), data=arg_value)
 
 class NotDeclaredField(RuntimeException):
     """Field is not acceptable by type."""

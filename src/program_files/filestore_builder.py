@@ -47,13 +47,15 @@ class FileStoreBuilder(ProgramFilesBuilder):
         url = f"{store_base_url}/users/{fn_path.parent}" # TODO: better handling of this path concat
         self.from_url(url)
         
-    def __from_url(self, url: str, base_path: str) -> None:
+    def __from_url(self, url: str, base_path: str) -> int:
         """Internal get files from url to be called recursively
         """
 
         # make sure URL has a trailing /
         if not url.endswith('/'):
             url = url + '/'
+
+        logger.debug(f"Getting files from: {url} to {self._files_info.path}/{base_path}")
 
         # download to folder inside given path
         try: 
@@ -87,7 +89,6 @@ class FileStoreBuilder(ProgramFilesBuilder):
            files list will be processed in get_files
            NOTE: assumes directory index listing is enabled on the webserver
         """
-        logger.debug(f"Getting files from: {url}")
         return self.__from_url(url, "")
 
     def copy_file(self, source_path: str, source_file: str, dest_path: str="") -> None:

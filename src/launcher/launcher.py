@@ -1,6 +1,10 @@
 """
 *TL;DR
-Interface a module launcher must expose; Define a module launcher factory
+Interface a module launcher must expose; 
+Module launchers implement the details to start a module in different ways;
+For example, a module launcher can start python programs inside a container and instanciate
+a docker client to do so (this is what PythonLauncher does). Other launchers can be implemented.
+A module launcher factory (LauncherContext) instanciates launchers based on settings
 """
 
 from typing import Protocol, Dict, Callable
@@ -9,7 +13,7 @@ from enum import Enum
 from logzero import logger
 from dynaconf import LazySettings
 
-from model.module import Module
+from model import Module, ModuleStats
 from common import settings, LauncherException, ClassUtils
 from program_files import ProgramFilesBuilder
 from pubsub import PubsubListner
@@ -30,7 +34,11 @@ class ModuleLauncher(Protocol):
         """Stop module"""
         raise NotImplementedError
 
-    
+    @abstractmethod
+    def get_stats(self) -> ModuleStats:
+        """Return module stats"""
+        raise NotImplementedError
+
     def __str__(self) -> str:
         return str(self.__dict__)
 

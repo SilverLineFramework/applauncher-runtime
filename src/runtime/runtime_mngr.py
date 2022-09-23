@@ -1,4 +1,10 @@
-"""Runtime message handlers according to config topic dict keys"""
+"""
+   Runtime manager keeps a list of modules and handles pubsub messages (create/delete modules) according 
+   to config topic dict keys
+   Once it receives pubsub connection notification, it starts tryting to register the runtime
+   
+   NOTE/TODO: We will register again everytime we lose mqtt connection (we are retrying to connect)
+"""
 
 from logzero import logger
 import uuid
@@ -9,10 +15,12 @@ from typing import Dict
 
 from common import settings, InvalidArgument
 from model import Result, RuntimeTopics
-from model import Runtime, Module
+from model import Runtime, Module, MessageType, Action
 from pubsub import PubsubHandler
 from launcher import LauncherContext
-from pubsub import PubsubListner
+from pubsub import PubsubListner, PubsubMessage
+from common.exception import MissingField, RuntimeException
+#from pubsub.pubsub_msg import PubsubMessage
 class RuntimeMngr(PubsubHandler):
     """Runtime Manager; handles topic messages"""
 
@@ -22,6 +30,7 @@ class RuntimeMngr(PubsubHandler):
         self.__lastwill_msg = None
         self.__reg_event = None
         self.__ka_exit = None
+        self.__pending_delete_msgs: Dict[str, PubsubMessage] = {} # dictionary messages waiting module exit notification
         
         # arguments passed in constructor will override settings
         runtime_args = {**settings.get('runtime'), **kwargs} 
@@ -42,6 +51,9 @@ class RuntimeMngr(PubsubHandler):
             time.sleep(.5) # need time to publish
 
     def pubsub_connected(self, client):
+        """ Once we are connected on pubsub, try to to register 
+            NOTE/TODO: We will register again everytime we lose mqtt connection (we are retrying to connect)
+        """
         self.__pubsub_client = client
         
         # set last will; sent if we dont disconnect properly
@@ -69,16 +81,10 @@ class RuntimeMngr(PubsubHandler):
         logger.info("Starting keepalive.")
         
         while True:
-            # TODO: add stats
-            #children = []
-            #for module in self.__modules:
-            #    mod_ka = module.keepalive_attrs({})
-            #    children.append(mod_ka)
             exit_flag = self.__ka_exit.wait(ka_interval_secs)
             if exit_flag: break # event is set; exit
             
-            #children = [mngr_mod.module.keepalive_attrs({}) for mngr_mod in self.__modules]
-            children = [mngr_mod.module.keepalive_attrs({}) for _, mngr_mod in self.__modules.items()]
+            children = [mngr_mod.module.keepalive_attrs(mngr_mod.module_launcher.get_stats()) for _, mngr_mod in self.__modules.items()]
             keepalive_msg = self.__rt.keepalive_msg(children)
             logger.debug("Sending keepalive.")
             self.__pubsub_client.message_publish(keepalive_msg)
@@ -102,7 +108,7 @@ class RuntimeMngr(PubsubHandler):
         # subscribe to runtime control topic to receive module requests
         self.__pubsub_client.message_handler_add(settings.topics.modules, self.control)
                     
-        logger.info("Runtime registration done.");
+        logger.info("Runtime registration done.")
         
         # start keepalive
         ka_interval_sec = self.__reg_details.get('ka_interval_sec')
@@ -120,66 +126,87 @@ class RuntimeMngr(PubsubHandler):
 
     def control(self, msg):
         """Handle control messages."""
-        # arts_resp -> is a message we sent, should be ignored
+        # runtime response -> is a message we sent, should be ignored
         msg_type = msg.get('type')
-        if msg_type == 'arts_resp':
+        if msg_type == MessageType.rt_response:
             return None
 
-        print("\n[Control] {}".format(msg.payload))
+        logger.debug("\n[Control] {}".format(msg.payload))
 
-        if msg_type == 'arts_req':
+        if msg_type == MessageType.orch_request:
             action = msg.get('action')
-            if action == 'create':
-                return self.__create_module(msg.get('data'))
-            elif action == 'delete':
-                return self.__delete_module(msg.get('data', {}))
-            #elif action == 'exited':
-            #    return self.__exited_module(msg)
+            if action == Action.create:
+                return self.__create_module(msg)
+            elif action == Action.delete:
+                return self.__delete_module(msg)
             else:
                 raise InvalidArgument('action', action)
         else:
             raise InvalidArgument('type', msg_type)
 
-    """
-    ********************************
-    """
-
-    def __create_module_ack(self, mod):
-        """Send ACK after creating module."""
-
-        """TODO"""
-
-        return None
-
     def __module_exit(self, mod_uuid):
-        print(f"module {mod_uuid} exited")
-         
-    def __create_module(self, mod):
+        logger.debug(f"module {mod_uuid} exited")
+        
+        delete_msg = None
+        
+        # check if this is due to a delete request
+        delete_msg = self.__pending_delete_msgs.pop(mod_uuid)
+        
+        # if this is not a pending delete request, send delete notification
+        if delete_msg == None:
+            module = None
+            # remove module from our module list; send a delete notification        
+            try:
+                module = self.__modules.pop(mod_uuid).module
+            except KeyError as ke:
+                raise RuntimeException("extraneous delete notification", "Module {mod_uuid} is not known") from ke
+            else:         
+                delete_msg = self.__rt.delete_module_msg(module.delete_attrs())
+        
+        if delete_msg != None:
+            self.__pubsub_client.message_publish(delete_msg)
+             
+    def __create_module(self, create_msg: PubsubMessage):
         """Handle create message."""
 
+        mod = create_msg.get('data')
         mod_uuid = mod.get('uuid')
         if mod_uuid: 
             if self.__modules.get(mod_uuid):
                 raise InvalidArgument('uuid', 'Module {} already exists'.format(mod_uuid))
+            
+        logger.info(f"Starting module {mod_uuid}.")
+            
         module = Module(io_base_topic = self.__module_io_base_topic, **mod)
 
         self.__modules[module.uuid] = MngrModule(module, self.__pubsub_client)
-        self.__modules[module.uuid].start_module(lambda: self.__module_exit(module.uuid))
-        
-        return None
+        self.__modules[module.uuid].start(lambda: self.__module_exit(module.uuid))
 
-    def __delete_module(self, mod):
+        # confirm create request
+        return self.__rt.confirm_module_msg(create_msg)
+
+    def __delete_module(self, delete_msg):
         """Handle delete message."""
 
-        """TODO"""
+        mod = delete_msg.get('data')
+        mod_uuid = mod.get('uuid')
+        if not mod_uuid: 
+            raise MissingField(f"UIID field missing (trying to delete)")
+        
+        logger.info(f"Stopping module {mod_uuid}.")
+        
+        try:
+            mod = self.__modules.pop(mod_uuid)
+        except KeyError as ke:
+            raise InvalidArgument('uuid', f"Module {mod_uuid} does not exist (trying to delete)") from ke
 
-        """
-        return messages.Request(
-            "{}/{}".format(msg.topic, uuid_current), "delete", {
-                "type": "module", "uuid": module_id,
-                "send_to_runtime": send_rt})
-        """
-
+        # NOTE: a delete module will be sent by module exit handler
+        mod.stop()
+        
+        # save pending delete message to be sent later;
+        # will be sent when a module exit notification is received
+        # TODO: add some timeout mechanism
+        self.__pending_delete_msgs[mod_uuid] = self.__rt.confirm_module_msg(delete_msg)
 class MngrModule():
     """Keep a module instance and a module laucher for each module started"""        
     
@@ -197,5 +224,8 @@ class MngrModule():
         # setup launcher, force container name to match module name
         self.module_launcher = LauncherContext.get_launcher_for_module(module, pubsubc=pubsubc)
 
-    def start_module(self, on_module_exit_call):
+    def start(self, on_module_exit_call):
         return self.module_launcher.start_module(on_module_exit_call)
+    
+    def stop(self):
+        return self.module_launcher.stop_module()

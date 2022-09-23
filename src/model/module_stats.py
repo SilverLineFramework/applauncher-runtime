@@ -34,36 +34,41 @@ class ModuleStats(ModelBase, dict):
 
     @cpu_percent.setter
     def cpu_percent(self, cpu_percent):
-        self['cpu_percent'] = cpu_percent
+        # cpu percent must be positive
+        if cpu_percent >= 0: self['cpu_percent'] = cpu_percent
 
     @property
-    def network_rx_mb(self):
+    def network_rx_mb(self):        
         return self['network_rx_mb']
 
     @network_rx_mb.setter
-    def cpu_percent(self, network_rx_mb):
-        self['network_rx_mb'] = network_rx_mb
+    def network_rx_mb(self, network_rx_mb):
+        # network rx must be positive
+        if network_rx_mb >= 0: self['network_rx_mb'] = network_rx_mb
 
     @property
     def network_tx_mb(self):
         return self['network_tx_mb']
 
     @network_tx_mb.setter
-    def cpu_percent(self, network_tx_mb):
-        self['network_tx_mb'] = network_tx_mb
+    def network_tx_mb(self, network_tx_mb):
+        # network tx must be positive
+        if network_tx_mb >= 0: self['network_tx_mb'] = network_tx_mb
         
     @property
     def network_tx_pkts(self):
         return self['network_tx_pkts']
 
     @network_tx_pkts.setter
-    def cpu_percent(self, network_tx_pkts):
-        self['network_tx_pkts'] = network_tx_pkts        
+    def network_tx_pkts(self, network_tx_pkts):
+        # network tx pkts must be positive
+        if network_tx_pkts >= 0: self['network_tx_pkts'] = network_tx_pkts        
 
     @property
     def network_rx_pkts(self):
         return self['network_rx_pkts']
 
     @network_rx_pkts.setter
-    def cpu_percent(self, network_rx_pkts):
-        self['network_rx_pkts'] = network_rx_pkts
+    def network_rx_pkts(self, network_rx_pkts):
+        # network tx pkts must be positive
+        if network_rx_pkts >= 0: self['network_rx_pkts'] = network_rx_pkts
