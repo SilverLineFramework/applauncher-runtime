@@ -2,7 +2,7 @@
 # internal application settings in .appsettings.yaml
 
 # logzero log level: CRITICAL (less messages), ERROR, WARNING, INFO, DEBUG (more messages)
-loglevel: "DEBUG" 
+loglevel: DEBUG
 
 # runtime settings
 runtime:

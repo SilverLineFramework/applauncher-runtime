@@ -1,8 +1,8 @@
 # Sideload Runtime
 
-Runtime that sideloads Silverline modules. With this runtime, Modules can be started in containers to run standlone python interpreters or WASM runtimes (instead of directly on WASM micro-processes).
+A Runtime that sideloads Silverline modules. With this runtime, Modules can be started in containers to run standalone python interpreters or WASM runtimes (instead of directly on WASM micro-processes).
 
-The purpose of this runtime is two-fold: (i) allow container/based applications to be managed by silverline and (2) prototype runtimes that execute silverline applications.
+The purpose of this runtime is two-fold: (i) allow container/based applications to be managed by Silverline and (2) prototype different aspects of Silverline runtimes.
 
 ## Prerequisites
 
@@ -11,10 +11,10 @@ You need to have [Make](https://www.gnu.org/software/make/) installed. The Makef
 ## Quick Start
 
 1. Clone the repository.
-2. Edit `conf/settings.yaml` to match your system/preferences (namely the mqtt connection). Here is an example:
+2. Edit `conf/settings.yaml` to match your system/preferences (namely the MQTT connection). Here is an example:
 ```yaml
-# logzero log level: CRITICAL (less messages), ERROR, WARNING, INFO, DEBUG (more messages)
-loglevel: "INFO" 
+# logzero log level: CRITICAL (fewer messages), ERROR, WARNING, INFO, DEBUG (more messages)
+loglevel: INFO 
 
 # runtime settings
 runtime:
@@ -47,7 +47,7 @@ launcher:
 > 2. Edit `.secrets.yaml` with the username and password. The format is as follows (do not delete the `dynaconf_merge: true` configuration)
 >
 >    ```
->    dynaconf_merge: true # merge with in settings.yaml (required)
+>    dynaconf_merge: true # merge with settings.yaml (required)
 >    mqtt:
 >      username: ausername
 >      password: apassword
@@ -60,8 +60,8 @@ launcher:
  
 ## Application Settings
 
-User-facing settings are defined in `settings.yaml`. This is what you will want to edit most of the time. Internal settings are kept in the `.appsettings.yaml`, which will be more relevant if you which to change runtime internal behavior. 
+User-facing settings are defined in `settings.yaml`. This is what you will want to edit most of the time. Internal settings are kept in the `.appsettings.yaml`, which will be more relevant if you wish to change internal runtime behavior. 
 
-Most settings are related to how modules are started using a **module launcher**. A module launcher is the implementation of a particular way of starting modules. For example, a module launcher can start python programs inside a container and instanciate
-a docker client to do so. Different llaunchers can be implemented. A module launcher factory (LauncherContext) instanciates launchers based on `.appsettings.yaml`.
+Most settings are related to how modules are started using a **module launcher**. A module launcher is the implementation of a particular way of starting modules. For example, a module launcher can start python programs inside a container and instantiate
+a docker client to do so. Different launchers can be implemented. A module launcher factory (LauncherContext) instantiates launchers based on `.appsettings.yaml`.
 
