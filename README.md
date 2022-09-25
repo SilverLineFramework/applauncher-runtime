@@ -25,7 +25,7 @@ runtime:
   max_nmodules: 100 # maximum number of modules we support
   realm: realm # realm topic used
 
-# mqtt settings (NOTE: username and password in .secrets.yaml)
+# mqtt settings (NOTE: username and password in conf/.secrets.yaml)
 mqtt:
   host: broker.com # broker host
   port: 1883 # broker port
@@ -42,12 +42,12 @@ launcher:
 
 > **Note**: If your MQTT broker requires a password:
 >
-> 1. Copy `.secrets-example.yaml` to `.secrets.yaml`
+> 1. Copy `conf/.secrets-example.yaml` to `conf/.secrets.yaml`
 >
-> 2. Edit `.secrets.yaml` with the username and password. The format is as follows (do not delete the `dynaconf_merge: true` configuration)
+> 2. Edit `conf/.secrets.yaml` with the username and password. The format is as follows (do not delete the `dynaconf_merge: true` configuration)
 >
 >    ```
->    dynaconf_merge: true # merge with settings.yaml (required)
+>    dynaconf_merge: true # merge with sonf/settings.yaml (required)
 >    mqtt:
 >      username: ausername
 >      password: apassword
@@ -60,8 +60,11 @@ launcher:
  
 ## Application Settings
 
-User-facing settings are defined in `settings.yaml`. This is what you will want to edit most of the time. Internal settings are kept in the `.appsettings.yaml`, which will be more relevant if you wish to change internal runtime behavior. 
+User-facing settings are defined in `conf/settings.yaml`. This is what you will want to edit most of the time. Internal settings are kept in the `conf/.appsettings.yaml`, which will be more relevant if you wish to change internal runtime behavior. 
 
 Most settings are related to how modules are started using a **module launcher**. A module launcher is the implementation of a particular way of starting modules. For example, a module launcher can start python programs inside a container and instantiate
-a docker client to do so. Different launchers can be implemented. A module launcher factory (LauncherContext) instantiates launchers based on `.appsettings.yaml`.
+a docker client to do so. Different launchers can be implemented. A module launcher factory (LauncherContext) instantiates launchers based on `conf/.appsettings.yaml`.
 
+## Container Images for Launchers
+
+Launchers use custom images to startup modules. The `containers` folders has the build files for these images. The images created here are then used in the `launcher.docker.image` setting for the corresponding laucher config in `conf/.appsettings.yaml`.
