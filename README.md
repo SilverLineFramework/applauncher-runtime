@@ -1,6 +1,6 @@
 # Sideload Runtime
 
-A Runtime that sideloads modules. With this runtime, Modules can be started in containers to run standalone python interpreters or WASM runtimes (instead of directly on WASM micro-processes).
+A Runtime that sideloads Modules (Modules are a [Silverline Framework](https://github.com/SilverLineFramework) concept). With this runtime, Modules can be started in containers to run standalone python interpreters or WASM runtimes (instead of directly on WASM micro-processes).
 
 The purpose of this runtime is two-fold: (i) allow container/based applications to be managed by Silverline and (2) prototype different aspects of Silverline runtimes.
 
