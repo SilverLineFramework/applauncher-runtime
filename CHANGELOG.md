@@ -1,4 +1,11 @@
 x# Changelog
+## [1.1.0](https://github.com/SilverLineFramework/sideload-runtime/compare/v1.0.2...v1.1.0) (2022-09-25)
+
+
+### Features
+
+* dockerfile ([9cfaab4](https://github.com/SilverLineFramework/sideload-runtime/commit/9cfaab4d262f84615f6c04a944573f57a81d4bce))
+
 ## [1.0.2](https://github.com/SilverLineFramework/sideload-runtime/compare/v1.0.1...v1.0.2) (2022-09-25)
 
 
