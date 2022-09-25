@@ -1,4 +1,11 @@
 x# Changelog
+## [1.0.2](https://github.com/SilverLineFramework/sideload-runtime/compare/v1.0.1...v1.0.2) (2022-09-25)
+
+
+### Bug Fixes
+
+* release-please workflow ([d6891b1](https://github.com/SilverLineFramework/sideload-runtime/commit/d6891b10931bd3269b32cbf69a6581b755bc7901))
+
 ## [1.0.1](https://github.com/SilverLineFramework/sideload-runtime/compare/v1.0.0...v1.0.1) (2022-09-25)
 
 
