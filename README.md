@@ -68,3 +68,4 @@ a docker client to do so. Different launchers can be implemented. A module launc
 ## Container Images for Launchers
 
 Launchers use custom images to startup modules. The `containers` folders has the build files for these images. The images created here are then used in the `launcher.docker.image` setting for the corresponding laucher config in `conf/.appsettings.yaml`.
+
