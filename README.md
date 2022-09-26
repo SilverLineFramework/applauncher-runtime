@@ -6,7 +6,7 @@ The purpose of this runtime is two-fold: (i) allow container/based applications 
 
 ## Prerequisites
 
-You need to have [Python 3](https://command-not-found.com/python3), [Make](https://command-not-found.com/make), [CURL](https://command-not-found.com/curl) and [sha256sum](https://command-not-found.com/sha256sum) installed. The Makefile creates a [virtual environment that deals with installing all dependencies](https://github.com/sio/Makefile.venv).
+You need to have [Python 3](https://command-not-found.com/python3), [Make](https://command-not-found.com/make), [CURL](https://command-not-found.com/curl) and [sha256sum](https://command-not-found.com/sha256sum) installed. The Makefile creates a [Python virtual environment that deals with installing all Python dependencies](https://github.com/sio/Makefile.venv).
 
 ## Quick Start
 
