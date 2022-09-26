@@ -56,7 +56,7 @@ launcher:
 3. Start the runtime using the `run` Makefile target:
 `make run`
 
-> You can install the dependencies manually and run the program directly with Python 3 if you do not want to install Make.
+> You can install the dependencies manually and run the program directly with Python 3 if you do not want to install Make. Have a look at the [Dockerfile](Dockerfile) to see how this is done.
  
 ## Application Settings
 
