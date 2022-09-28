@@ -1,4 +1,13 @@
 x# Changelog
+## [1.1.1](https://github.com/SilverLineFramework/sideload-runtime/compare/v1.1.0...v1.1.1) (2022-09-28)
+
+
+### Bug Fixes
+
+* add wait for it script ([45207c9](https://github.com/SilverLineFramework/sideload-runtime/commit/45207c986d1031056b1017eba832006ca7da0284))
+* add wait for it script ([418f9cf](https://github.com/SilverLineFramework/sideload-runtime/commit/418f9cf877bacff08430bcbc96931144ff97b654))
+* add wait for it script ([c6a66ca](https://github.com/SilverLineFramework/sideload-runtime/commit/c6a66caa217bbec386603e8156b3268b58686fa3))
+
 ## [1.1.0](https://github.com/SilverLineFramework/sideload-runtime/compare/v1.0.2...v1.1.0) (2022-09-25)
 
 
