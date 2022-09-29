@@ -44,9 +44,10 @@ def main(args):
     time.sleep(2)
     
     while True:
-        choice = input("Enter Q to quit.")
-        if choice.lower() == "q":
-            break
+        if not args.daemon:
+            choice = input("Enter Q to quit.")
+            if choice.lower() == "q":
+                break
 
 if __name__ == "__main__":
     """ This is executed when run from the command line """
@@ -65,6 +66,10 @@ if __name__ == "__main__":
         "--version",
         action="version",
         version="%(prog)s (version {version})".format(version=release.__version__))
+
+    parser.add_argument(
+        "--daemon",
+        action="store_true")
 
     args = parser.parse_args()
     
