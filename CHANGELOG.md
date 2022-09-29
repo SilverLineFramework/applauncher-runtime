@@ -1,4 +1,11 @@
 x# Changelog
+## [1.1.2](https://github.com/SilverLineFramework/sideload-runtime/compare/v1.1.1...v1.1.2) (2022-09-29)
+
+
+### Bug Fixes
+
+* add daemon start mode flag ([59f5731](https://github.com/SilverLineFramework/sideload-runtime/commit/59f573103dddc17440b09c1517d90ac5fcb5f6b8))
+
 ## [1.1.1](https://github.com/SilverLineFramework/sideload-runtime/compare/v1.1.0...v1.1.1) (2022-09-28)
 
 
