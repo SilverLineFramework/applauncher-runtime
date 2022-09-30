@@ -15,15 +15,15 @@ runtime:
   realm: realm
 
 # mqtt username and password in .secrets.yaml
-mqtt:
-  host: arena-dev1.conix.io
-  port: 8883
-  ssl: true
-
 #mqtt:
 #  host: arena-dev1.conix.io
-#  port: 11883
-#  ssl: false
+#  port: 8883
+#  ssl: true
+
+mqtt:
+  host: arena-dev1.conix.io
+  port: 11883
+  ssl: false
 
 # where/how we keep program files;
 # these might change, depending on class defined in .appsettings.yaml
