@@ -40,7 +40,7 @@ class RuntimeTopics(ModelBase, dict):
     def modules_root(self):
         return self['modules_root']
 
-    @modules.setter
+    @modules_root.setter
     def modules_root(self, modules_root):
         self['modules_root'] = modules_root
 
