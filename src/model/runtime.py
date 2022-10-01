@@ -144,7 +144,7 @@ class Runtime(ModelBase, dict):
 
     def confirm_module_msg(self, src_msg) -> PubsubMessage:
         return self.__rt_msgs.resp(
-            self.__topics.modules,
+            self.__topics.modules_root,
             src_uuid = src_msg.get('object_id'),
             action = src_msg.get('action'),
             details = src_msg.get('data'))

@@ -8,7 +8,7 @@ class RuntimeTopics(ModelBase, dict):
     _required_attrs = ['modules', 'runtimes', 'io', 'keepalive']
     
     # if True, only accepts declared attributes at init
-    _strict = True
+    _strict = False
     
     def __init__(self, attr_replace=None, **kwargs):        
         """Intanciate RuntimeTopics  
@@ -35,6 +35,14 @@ class RuntimeTopics(ModelBase, dict):
     @modules.setter
     def modules(self, modules):
         self['modules'] = modules
+
+    @property
+    def modules_root(self):
+        return self['modules_root']
+
+    @modules.setter
+    def modules_root(self, modules_root):
+        self['modules_root'] = modules_root
 
     @property
     def runtimes(self):
