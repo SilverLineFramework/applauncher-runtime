@@ -17,8 +17,8 @@ class MessageType():
     """Message type enum."""
     rt = 'runtime'
     mod = 'module'
-    rt_request = 'runtime_req'
-    rt_response = 'runtime_resp'
+    rt_request = 'arts_req'
+    rt_response = 'arts_resp'
     orch_request = 'arts_req'
     orch_response = 'arts_resp'
 
