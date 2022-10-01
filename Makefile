@@ -1,9 +1,9 @@
 run: venv
 		$(VENV)/python3 src/main.py $(ARGS)
 
-# example how to run with settings root
-run_w_settings_root: venv
-		ROOT_PATH_FOR_DYNACONF="config/new" $(VENV)/python3 src/main.py $(ARGS)
+# example how to run with different settings root
+run_arenaxr: venv
+		ROOT_PATH_FOR_DYNACONF="config/arenaxr" $(VENV)/python3 src/main.py $(ARGS)
 
 # example how to run with different settings
 run_w_settings: venv

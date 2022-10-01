@@ -1,0 +1,63 @@
+# internal, developer-facing application settings
+# ** a *normal* user will normally not edit this file **
+
+dynaconf_merge: true # merge with config in settings.yaml (required)
+
+# launcher config; what starts modules
+# add launchers (a Launcher-derived class) here; launcher key is the create request filetype (WA, PY, ...)
+launcher:
+  # space-separated list e.g.: python:python3 wasm:wasi_preview_1;
+  # union of apis supported by all configured launchers below
+  apis: python:python3 wasm:wasi_preview_1
+  PY: # launcher key
+    class: launcher.python_launcher.PythonLauncher # instanciate a Launcher-derived class from: module.submodule.Class
+    # install requirements; force stdout/stderr to be unbuffered; string must include {py_filename} to be started
+    #cmd: '[ -f "requirements.txt" ] && install -Ur requirements.txt; python3 -u {py_filename}'
+    cmd: '/entrypoint.sh'
+    docker: # this launcher uses docker with these options
+      # use this image and workdir
+      image: slframework/slruntime-python-runner
+      workdir: /usr/src/app
+      monitor_interval_secs: 0.5
+      run_opts: # run options
+        auto_remove: True
+        stdin_open: True
+        detach: True
+        #cap_drop: all
+        # qos options below: 25% of 1 cpu to each container
+        cpu_count: 1
+        cpu_period: 100000
+        cpu_quota: 25000
+
+  WA: # launcher key
+    class: launcher.wasm_launcher.WasmLauncher # instanciate a Launcher-derived class from: module.submodule.Class
+    # launcher-specific (launcher.wasm_launcher) arguments
+    image: python
+  # other examples TODO
+  #CTN: # launcher key
+    #class: launcher.container_launcher.ContainerLauncher # instanciate a Launcher-derived class from: module.submodule.Class
+    #launcher-specific (launcher.container_launcher) arguments
+    #...
+  #PY: # launcher key (another way to start python programs)
+    #class: launcher.scripted-native-launcher.NativeLauncher # instanciate a Launcher-derived class from: module.submodule.Class
+    # launcher-specific (docker.launcher.py) arguments
+    #script_path: runtimemngr/py_run.sh
+    #pipe_stdin_stdout: true
+
+runtime:
+  runtime_type: containerized-modules
+  apis: "@format {this.launcher.apis}" #apis from launcher config
+
+# topics used by runtime
+# realm and uuid (defined in runtime section - in settings.yaml) are replaced by values
+topics:
+  runtimes: "@format {this.runtime.realm}/proc/reg" # OLD (replaced by runtimes); to remove
+  modules: "@format {this.runtime.realm}/proc/control/{this.runtime.uuid}" # OLD (replaced by modules); to remove
+  #runtimes: "@format {this.runtime.realm}/proc/runtimes" # registration topic
+  #modules: "@format {this.runtime.realm}/proc/modules/{this.runtime.uuid}" # module control
+  io: "@format {this.runtime.realm}/proc/io" # runtime error messages and root for modules stdin, stdout, stderr 
+  keepalive: "@format {this.runtime.realm}/proc/keepalive/{this.runtime.uuid}" # runtime keepalive messages
+
+# where/how we keep program files
+repository:
+  class: program_files.filestore_builder.FileStoreBuilder # instanciate a Repo bouilder class from: module.submodule.Class
