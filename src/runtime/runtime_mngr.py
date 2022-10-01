@@ -150,7 +150,10 @@ class RuntimeMngr(PubsubHandler):
         delete_msg = None
         
         # check if this is due to a delete request
-        delete_msg = self.__pending_delete_msgs.pop(mod_uuid)
+        try:
+            delete_msg = self.__pending_delete_msgs.pop(mod_uuid)
+        except KeyError as ke:
+            pass # ok: not from a pending delete request
         
         # if this is not a pending delete request, send delete notification
         if delete_msg == None:
