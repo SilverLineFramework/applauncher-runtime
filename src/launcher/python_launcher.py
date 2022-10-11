@@ -105,7 +105,8 @@ class PythonLauncher(ModuleLauncher):
         docker_stats = self._docker_client.get_stats()
         
         # convert into ModuleStats
-        return ModuleStats( cpu_percent=docker_stats['cpu_percent'], 
+        return ModuleStats( cpu_percent=docker_stats['cpu_percent'],
+                           mem_usage=docker_stats['mem_usage'], 
                            network_rx_mb=docker_stats['rx_bytes']/1000000,
                            network_tx_mb=docker_stats['tx_bytes']/1000000,
                            network_rx_pkts=docker_stats['rx_packets'],

@@ -38,6 +38,15 @@ class ModuleStats(ModelBase, dict):
         if cpu_percent >= 0: self['cpu_percent'] = cpu_percent
 
     @property
+    def mem_usage(self):
+        return self['mem_usage']
+
+    @mem_usage.setter
+    def mem_usage(self, mem_usage):
+        # mem_usage must be positive
+        if mem_usage >= 0: self['mem_usage'] = mem_usage
+
+    @property
     def network_rx_mb(self):        
         return self['network_rx_mb']
 

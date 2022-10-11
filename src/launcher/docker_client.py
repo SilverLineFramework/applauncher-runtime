@@ -9,6 +9,8 @@ import threading
 from enum import Enum
 from logzero import logger
 import uuid
+import subprocess
+import json
 
 from common import LauncherException
 from .launcher import QoSParams
@@ -168,10 +170,31 @@ class DockerClient(QoSParams):
         if not self._container:
             raise LauncherException(f"[DockerClient] Container not running!")
         
+        
         stats = self._container.stats(decode=None, stream = False)
-        cpu_percent, self._stats['previous_cpu'], self._stats['previous_system'] = self.__get_cpu_stats(stats, self._stats['previous_cpu'], self._stats['previous_system'])
+        #cpu_percent, self._stats['previous_cpu'], self._stats['previous_system'] = self.__get_cpu_stats(stats, self._stats['previous_cpu'], self._stats['previous_system'])
         net_stats = self.__get_network_stats(stats)
-        return { 'cpu_percent': cpu_percent, **net_stats }
+
+        stats_cmd = f'docker stats --no-stream {self._container.id} --format "{{{{ json . }}}}"'
+        popen_result = subprocess.Popen(stats_cmd, shell=True, stdout=subprocess.PIPE).stdout.read()
+        print(popen_result.decode())
+        dstats = json.loads(popen_result.decode())
+                
+        mem_usage_bytes = 0.0
+        try:
+            mem_usage_bytes = float(dstats['MemUsage'].split('MiB', 1)[0]) * 1000000
+        except ValueError:
+            pass
+
+        cpu_percent = 0.0
+        try:
+            cpu_percent = float(dstats['CPUPerc'].replace("%", ""))
+        except ValueError:
+            pass
+            
+        stats = { 'cpu_percent': cpu_percent, 'mem_usage': mem_usage_bytes , **net_stats }
+        
+        return stats
     
     def stop(self):
         if not self._container:
