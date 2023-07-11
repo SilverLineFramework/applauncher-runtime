@@ -30,8 +30,9 @@ for folder in *; do
       echo "building: "$IMG_NAME:$IMG_TAG
 
       # create a multiarch build
-      docker buildx create --use
-      docker buildx build --platform=linux/arm64/v8,linux/amd64 . -t $DOCKER_USER/$IMG_NAME
+      #docker buildx create --use
+      #docker buildx build --platform=linux/arm64/v8,linux/amd64 . -t $DOCKER_USER/$IMG_NAME
+      docker build . -t $DOCKER_USER/$IMG_NAME
       docker tag $DOCKER_USER/$IMG_NAME:latest $DOCKER_USER/$IMG_NAME:$IMG_TAG
 
       if [[ $PUSH_IMG = "true" ]]; then
