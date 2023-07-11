@@ -5,7 +5,7 @@ class ModuleStats(ModelBase, dict):
     """A dictionary to hold module stats"""
 
     # required attributes
-    _required_attrs = ['cpu_percent']
+    _required_attrs = ['cpu_usage_percent']
     
     # if True, only accepts declared attributes at init
     _strict = True
@@ -29,13 +29,13 @@ class ModuleStats(ModelBase, dict):
         dict.__init__(self, kwargs)
 
     @property
-    def cpu_percent(self):
-        return self['cpu_percent']
+    def cpu_usage_percent(self):
+        return self['cpu_usage_percent']
 
-    @cpu_percent.setter
-    def cpu_percent(self, cpu_percent):
+    @cpu_usage_percent.setter
+    def cpu_usage_percent(self, cpu_usage_percent):
         # cpu percent must be positive
-        if cpu_percent >= 0: self['cpu_percent'] = cpu_percent
+        if cpu_usage_percent >= 0: self['cpu_usage_percent'] = cpu_usage_percent
 
     @property
     def mem_usage(self):

@@ -23,7 +23,7 @@ mqtt:
 # where/how we keep program files;
 # these might change, depending on class defined in .appsettings.yaml
 repository:
-  url: https://arena-dev1.conix.io/store
+  url: https://arenaxr.org/store
 
 # launcher config; what starts modules
 launcher:

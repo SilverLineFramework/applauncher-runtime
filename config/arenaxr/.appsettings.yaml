@@ -25,9 +25,9 @@ launcher:
         detach: True
         #cap_drop: all
         # qos options below: 25% of 1 cpu to each container
-        cpu_count: 1
-        cpu_period: 100000
-        cpu_quota: 25000
+        #cpu_count: 1
+        #cpu_period: 100000
+        #cpu_quota: 25000
 
   WA: # launcher key
     class: launcher.wasm_launcher.WasmLauncher # instanciate a Launcher-derived class from: module.submodule.Class
