@@ -8,12 +8,9 @@ run: venv
 config/%: venv
 		ROOT_PATH_FOR_DYNACONF="$@" $(VENV)/python3 src/main.py $(ARGS)
 
-# example of how to specify settings files
-run_w_settings: venv
-		SETTINGS_FILE_FOR_DYNACONF="new_settings.yaml;.appsettings.yaml;.secrets.yaml" $(VENV)/python3 src/main.py $(ARGS)
-
+# this shows how to specify specific settings files (inside conf folder)
 tests: venv
-		$(VENV)/python3 src/test/run_tests.py
+		SETTINGS_FILE_FOR_DYNACONF="arenaxr/settings.yaml;arenaxr/.appsettings.yaml;arenaxr/.secrets.yaml" $(VENV)/python3 src/test/run_tests.py
 
 test-docker: venv
 		$(VENV)/python3 src/test-docker.py
