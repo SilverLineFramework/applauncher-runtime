@@ -18,7 +18,6 @@ class TestLauncher(unittest.TestCase):
     # topics based on above uuid
     #_RUNTIME_DBG_TOPIC = "realm/proc/debug/94d4dc1b-b2bb-4207-9778-d96b16052475"
     
-
     @classmethod
     def setUpClass(self):
         # instantiate a python module for testing
@@ -71,6 +70,10 @@ class TestLauncher(unittest.TestCase):
             mod_launcher.stop_module()
             self.assertTrue(False)
         
+        # send exit
+        self.mqttc.message_publish(PubsubMessage(self.module.topics['stdin'], 'exit'))
+        self.pubsub_out_received_evt.wait(15)
+         
         mod_launcher.stop_module()
 
 if __name__ == '__main__':
