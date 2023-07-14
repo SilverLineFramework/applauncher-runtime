@@ -13,7 +13,6 @@ import release
 from common.config import settings
 from dynaconf import ValidationError
 
-#from pubsub import MQTTListner
 from pubsub.listner import MQTTListner
 from runtime.runtime_mngr import RuntimeMngr
 
@@ -30,7 +29,6 @@ def main(args):
     print_settings()
 
     # Set a minimum log level
-    
     loglevel = getattr(logzero, settings.loglevel)
     logzero.loglevel(loglevel)
 
@@ -40,11 +38,11 @@ def main(args):
     # pass runtime mngr as pubsub handler to mqtt client
     mqttc = MQTTListner(rtmngr, **settings.get('mqtt'))
 
-    # some time to init
+    # some time to init (just so following message does not appear in the middle of init log)
     time.sleep(2)
     
     while True:
-        choice = input("Enter Q to quit.")
+        choice = input("\nEnter Q to quit.\n")
         if choice.lower() == "q":
             break
 
@@ -72,3 +70,5 @@ if __name__ == "__main__":
         main(args)
     except ValidationError as e:
          print("Settings validation error:", str(e))
+    except Exception as e:
+        print(str(e))
