@@ -28,8 +28,9 @@ class RuntimeMngr(PubsubHandler):
         self.__modules: Dict[str, MngrModule] = {} # dictionary of MngrModules by module uuid
         self.__module_io_base_topic = runtime_topics.io
         self.__lastwill_msg = None
-        self.__reg_event = None
-        self.__ka_exit = None
+        self.__conn_event = threading.Event()
+        self.__reg_event = threading.Event()
+        self.__ka_exit = threading.Event()
         self.__pending_delete_msgs: Dict[str, PubsubMessage] = {} # dictionary messages waiting module exit notification
         
         # arguments passed in constructor will override settings
@@ -40,20 +41,26 @@ class RuntimeMngr(PubsubHandler):
         atexit.register(self.__exit_handler)
 
     def __exit_handler(self):
-        
+        """ Exit handler; do some cleanup """
+                
         # try to gracefully stop threads
-        if self.__reg_event != None: self.__reg_event.set() # in case we are still tyring to register
-        if self.__ka_exit != None: self.__ka_exit.set()
+        self.__reg_event.set() # in case we are still trying to register
+        self.__ka_exit.set()
+        
+        # stop containers
+        for mod in self.__modules.items():
+            mod.stop()
         
         # publish last will before exit
         if self.__lastwill_msg != None:
             self.__pubsub_client.message_publish(self.__lastwill_msg)
             time.sleep(.5) # need time to publish
-
+        
     def pubsub_connected(self, client):
         """ Once we are connected on pubsub, try to to register 
             NOTE/TODO: We will register again everytime we lose mqtt connection (we are retrying to connect)
         """
+        self.__conn_event.set() # signal event
         self.__pubsub_client = client
         
         # set last will; sent if we dont disconnect properly
@@ -64,7 +71,6 @@ class RuntimeMngr(PubsubHandler):
         self.__pubsub_client.message_handler_add(settings.topics.runtimes, self.reg)
 
         # start a thread to send registration messages once we are connected
-        self.__reg_event = threading.Event()
         self.__reg_thread = threading.Thread(target=self.__register_runtime,
             args=(
                 self.__rt.create_runtime_msg(),
@@ -76,12 +82,22 @@ class RuntimeMngr(PubsubHandler):
         logger.error(desc, data)
         pass
 
+    def wait_reg(self, timeout_secs):
+        evt_flag = self.__conn_event.wait(10)
+        if not evt_flag:
+            raise RuntimeException("timeout waiting for MQTT connection.") 
+                 
+        evt_flag = self.__reg_event.wait(timeout_secs)
+        #if evt_flag == False: self.__reg_event.clear()
+        return evt_flag
+
     def __keepalive(self, ka_interval_secs):
         """Keepalive thread; sends keepalive messages periodically """
         logger.info("Starting keepalive.")
         
         while True:
             exit_flag = self.__ka_exit.wait(ka_interval_secs)
+            self.__ka_exit.clear()
             if exit_flag: break # event is set; exit
             
             children = [mngr_mod.module.keepalive_attrs(mngr_mod.module_launcher.get_stats()) for _, mngr_mod in self.__modules.items()]
@@ -98,10 +114,12 @@ class RuntimeMngr(PubsubHandler):
                 reg_attempts = reg_attempts - 1
                 if reg_attempts == 0: break
             logger.info("Runtime attempting to register...");
+            print("timeout_secs", timeout_secs, "reg_attempts", reg_attempts)
             self.__pubsub_client.message_publish(reg_msg)
-            evt_flag = self.__reg_event.wait(timeout_secs)
-            if evt_flag: break # event is set; registration response received
-
+            evt_flag = self.wait_reg(5)
+            if evt_flag == True: break # event is set; registration response received
+            
+            
         # remove subscription to reg topic
         self.__pubsub_client.message_handler_remove(settings.topics.runtimes)
 
@@ -113,7 +131,6 @@ class RuntimeMngr(PubsubHandler):
         # start keepalive
         ka_interval_sec = self.__reg_details.get('ka_interval_sec')
         if ka_interval_sec:
-            self.__ka_exit = threading.Event()
             self.__ka_thread = threading.Thread(target=self.__keepalive,
                 args=(ka_interval_sec,))
             self.__ka_thread.start()
@@ -207,6 +224,7 @@ class RuntimeMngr(PubsubHandler):
         # will be sent when a module exit notification is received
         # TODO: add some timeout mechanism
         self.__pending_delete_msgs[mod_uuid] = self.__rt.confirm_module_msg(delete_msg)
+        
 class MngrModule():
     """Keep a module instance and a module laucher for each module started"""        
     
