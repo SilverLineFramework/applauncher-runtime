@@ -7,7 +7,6 @@ from uuid import uuid4
 
 from .model_base import ModelBase
 from .runtime_types import *
-from .sl_msgs import SlMsgs
 
 class Module(ModelBase, dict):
     """A dictionary to hold module properties"""

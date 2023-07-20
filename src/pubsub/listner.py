@@ -194,9 +194,12 @@ class MQTTListner(paho.Client, PubsubListner):
         a ```Message``` to send in response, ```None``` for no response, or
         raise an ```RuntimeException``` which should be given as a response.
         """
-        
-        (handler, decode_json) = self.__topic_dispatcher.get(msg.topic)
-        
+        try:
+            (handler, decode_json) = self.__topic_dispatcher.get(msg.topic)
+        except TypeError:
+            return PubsubMessage(self._error_topic,
+                {"desc": "No dispatcher for message on topic", "data": msg.topic})
+            
         try:
             decoded_mqtt_msg = self.__decode_msg(msg, decode_json)
         except JSONDecodeError:
