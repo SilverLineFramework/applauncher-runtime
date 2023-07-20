@@ -81,7 +81,7 @@ class TestRuntimeMngr(unittest.TestCase):
         self.assertGreaterEqual(popen_result.find(self.mod_name), 0)
 
     def test_module_receives_stdin_data(self):
-        # the pytest.sh script exits if it receives an 'exit' string on stdin
+        # the pytest.sh script exits if it receives an 'exit' string on stdin (this will cause spurious cleanup delete messages; that is ok)
         self.mqttc.message_publish(PubsubMessage(f"{self.topics.io}/{self.mod_uuid}/stdin", "exit"))
         # wait for teardown
         time.sleep(5) 

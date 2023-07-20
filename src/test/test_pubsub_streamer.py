@@ -49,7 +49,10 @@ class TestStreamer(unittest.TestCase, PubsubHandler):
         raise Exception(f"Pubsub error: {str}; {data}")
         
     def ctn_output(self, msg: PubsubMessage) -> None:
-        self.received_msg_payload = msg.payload
+        self.received_msg_payload = msg.payload 
+        # remove final '\n'
+        if msg.payload[-1] == '\n':
+            self.received_msg_payload = msg.payload[:-1]
         self.pubsub_out_received_evt.set()
     
     def test_container_direct_io(self):
