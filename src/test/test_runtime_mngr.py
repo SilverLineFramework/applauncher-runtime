@@ -1,31 +1,93 @@
 import unittest
+import time
+import subprocess
 
 from model import *
+from common import settings
 from runtime import RuntimeMngr
+from pubsub.listner import MQTTListner
 
 class TestRuntimeMngr(unittest.TestCase):
     @classmethod
     def setUpClass(self):
+        # fixed uuids and names for testing
+        self.rt_uuid = "41c7bf1f-9b8a-4b2a-9764-7fd160a98e66"
+        self.mod_uuid = "928b6df3-48ab-4b7e-9174-47351aeee0bc"
+        self.mod_name = 'pytest-47351aeee0bc'    
         # instanciate a topics object to create repeatable topics for testing 
         self.topics = RuntimeTopics(
-                                    runtimes="realm/proc/runtimes",
-                                    modules="realm/proc/modules/c950272a-905b-4cc3-8b2d-c38a779806ef", 
-                                    io="realm/proc/io/c950272a-905b-4cc3-8b2d-c38a779806ef",
-                                    keepalive="realm/proc/keepalive/c950272a-905b-4cc3-8b2d-c38a779806ef")
+                                    runtimes="realm/proc/reg",
+                                    modules=f"realm/proc/control/{self.rt_uuid}", 
+                                    io=f"realm/proc/io",
+                                    keepalive=f"realm/proc/keepalive/{self.rt_uuid}")
         
+        self.module_create_msg = PubsubMessage(self.topics.modules, 
+                                                {
+                                                    "object_id": str(uuid.uuid4()),
+                                                    "action": "create",
+                                                    "type": "arts_req",
+                                                    "data": {
+                                                        "type": "module",
+                                                        "uuid": self.mod_uuid,
+                                                        "name": self.mod_name,
+                                                        "parent": self.rt_uuid,
+                                                        "filename": "arena/py/pytestenv/pytest.py",
+                                                        "filetype": "PY",
+                                                        "apis": ["wasm", "wasi"],
+                                                        "args": [],
+                                                        "env": [],
+                                                        "channels": [],
+                                                        "peripherals": [],
+                                                        "resources": None,
+                                                        "fault_crash": "ignore",
+                                                        "status": "A",
+                                                    },
+                                                });
+
+        self.module_delete_msg = PubsubMessage(self.topics.modules, 
+                                                {
+                                                    "object_id": str(uuid.uuid4()),
+                                                    "action": "delete",
+                                                    "type": "arts_req",
+                                                    "data": {
+                                                        "type": "module",
+                                                        "uuid": self.mod_uuid,
+                                                        "name": "test-mod",
+                                                        "parent": self.rt_uuid,
+                                                    },
+                                                });
+                                                        
         # instantiate a runtime manager for testing
-        self.rtmngr = RuntimeMngr(runtime_topics = self.topics, uuid="c950272a-905b-4cc3-8b2d-c38a779806ef")
+        self.rtmngr = RuntimeMngr(runtime_topics = self.topics, uuid=self.rt_uuid)
         
-        # instantiate a python module for testing 
-        self.module = Module(io_base_topic = self.topics.io, uuid='070aebda-390c-4529-b6ea-730eede590a8', name='test_mod', filename='arena/image-switcher', filetype='PY')
+        self.mqttc = MQTTListner(self.rtmngr, **settings.get('mqtt'))
         
+        # use runtime manager evt to wait for registration
+        evt_flag = self.rtmngr.wait_reg(50) 
+        if not evt_flag:
+            raise Exception("Timeout waiting for registration.")
+
+        # create the module; this simulates a message received on the control topic
+        self.rtmngr.control(self.module_create_msg)
+
+        # wait a bit for module to startup
+        time.sleep(5)
+        
+        print("Done init.")
+                        
     def test_module_create_starts_new_module(self):
-        # create request message as it would be received
+        # check if container is running using docker cli (relies on force_container_name option in appsettings)
+        popen_result = str(subprocess.Popen(f"docker ps -f name={self.mod_name}", shell=True, stdout=subprocess.PIPE).stdout.read())
+        self.assertGreaterEqual(popen_result.find(self.mod_name), 0)
+
+    def test_module_receives_stdin_data(self):
+        # the pytest.sh script exits if it receives an 'exit' string on stdin
+        self.mqttc.message_publish(PubsubMessage(f"{self.topics.io}/{self.mod_uuid}/stdin", "exit"))
+        # wait for teardown
+        time.sleep(5) 
+        # check if container is no longer running using docker cli (relies on force_container_name option in appsettings)
+        popen_result = str(subprocess.Popen(f"docker ps -f name={self.mod_name}", shell=True, stdout=subprocess.PIPE).stdout.read())
+        self.assertLess(popen_result.find(self.mod_name), 0)
         
-        mod_req_msg_payload = { "object_id": uuid.uuid4(), "action": "create", "type": "arts_req", "data": { "type": "module", "uuid": "070aebda-390c-4529-b6ea-730eede590a8", "name": "test-mod", "parent": "f87abed2-de27-4745-95d3-553745568961", "filename": "arena/image-switcher", "filetype": "PY", "apis": ["wasm", "wasi"], "args": [], "env": [], "channels": [], "peripherals": [], "resources": None, "fault_crash": "ignore", "status": "A"}}
-        mod_req_pubsub_msg = PubsubMessage(self.topics.modules, mod_req_msg_payload)
-        
-        # TODO
-        pass        
 if __name__ == '__main__':
     unittest.main()

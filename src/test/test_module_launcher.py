@@ -15,9 +15,6 @@ class TestLauncher(unittest.TestCase):
     # fixed module name; some name that does not conflict with ofther containers
     _MOD_NAME = 'pytest-c38285c4ed33'
     
-    # topics based on above uuid
-    #_RUNTIME_DBG_TOPIC = "realm/proc/debug/94d4dc1b-b2bb-4207-9778-d96b16052475"
-    
     @classmethod
     def setUpClass(self):
         # instantiate a python module for testing
@@ -54,11 +51,11 @@ class TestLauncher(unittest.TestCase):
             logger.error("Timeout waiting for mqtt connection.")
             self.assertTrue(False)
             
-        # setup launcher, force container name to match module name
-        mod_launcher = LauncherContext.get_launcher_for_module(self.module, force_container_name=True, pubsubc=self.mqttc)
+        # setup launcher
+        mod_launcher = LauncherContext.get_launcher_for_module(self.module, pubsubc=self.mqttc)
         mod_launcher.start_module(self.on_module_exit)
         
-        # check if container is running using docker cli
+        # check if container is running using docker cli (relies on force_container_name option in appsettings)
         popen_result = str(subprocess.Popen(f"docker ps -f name={self._MOD_NAME}", shell=True, stdout=subprocess.PIPE).stdout.read())
         
         self.assertTrue(popen_result.find(self._MOD_NAME))
