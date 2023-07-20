@@ -10,10 +10,10 @@ config/%: venv
 
 # this shows how to specify specific settings files (inside conf folder)
 tests: venv
-		SETTINGS_FILE_FOR_DYNACONF="arenaxr/settings.yaml;arenaxr/.appsettings.yaml;arenaxr/.secrets.yaml" $(VENV)/python3 src/test/run_tests.py
+		SETTINGS_FILE_FOR_DYNACONF="dev-1/settings.yaml;dev-1/.appsettings.yaml;dev-1/.secrets.yaml" $(VENV)/python3 src/test/run_tests.py
 
-test-docker: venv
-		$(VENV)/python3 src/test-docker.py
+test-dockerio: venv
+		$(VENV)/python3 src/test/test_scripts/test_docker_io.py
 
 show-req: venv
 		$(VENV)/pip3 freeze
