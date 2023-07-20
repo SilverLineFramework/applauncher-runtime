@@ -20,19 +20,19 @@ from pubsub import PubsubHandler
 from launcher import LauncherContext
 from pubsub import PubsubListner, PubsubMessage
 from common.exception import MissingField, RuntimeException
-#from pubsub.pubsub_msg import PubsubMessage
 class RuntimeMngr(PubsubHandler):
     """Runtime Manager; handles topic messages"""
 
     def __init__(self, runtime_topics: RuntimeTopics=RuntimeTopics(**settings.get('topics')), **kwargs):
         self.__modules: Dict[str, MngrModule] = {} # dictionary of MngrModules by module uuid
-        self.__module_io_base_topic = runtime_topics.io
+        self.__runtime_topics = runtime_topics
         self.__lastwill_msg = None
         self.__conn_event = threading.Event()
         self.__reg_event = threading.Event()
         self.__ka_exit = threading.Event()
         self.__pending_delete_msgs: Dict[str, PubsubMessage] = {} # dictionary messages waiting module exit notification
-        
+        self.__reg_details = { 'ka_interval_sec': 60}
+
         # arguments passed in constructor will override settings
         runtime_args = {**settings.get('runtime'), **kwargs} 
         self.__rt = Runtime(topics=runtime_topics, **runtime_args)
@@ -48,7 +48,7 @@ class RuntimeMngr(PubsubHandler):
         self.__ka_exit.set()
         
         # stop containers
-        for mod in self.__modules.items():
+        for (_, mod) in self.__modules.items():
             mod.stop()
         
         # publish last will before exit
@@ -68,27 +68,30 @@ class RuntimeMngr(PubsubHandler):
         self.__pubsub_client.last_will_set(self.__lastwill_msg)
 
         # subscribe to runtimes to receive registration confirmation
-        self.__pubsub_client.message_handler_add(settings.topics.runtimes, self.reg)
+        self.__pubsub_client.message_handler_add(self.__rt.topics.runtimes, self.reg)
 
-        # start a thread to send registration messages once we are connected
-        self.__reg_thread = threading.Thread(target=self.__register_runtime,
-            args=(
-                self.__rt.create_runtime_msg(),
-                settings.get('runtime.reg_timeout_seconds', 5),
-                settings.get('runtime.reg_attempts', 0),))
-        self.__reg_thread.start()
+        reg_attempts = settings.get('runtime.reg_attempts', 0)
+        if reg_attempts < 0:
+            # skip registration
+            self.__register_runtime_done()
+        else:
+            # start a thread to send registration messages once we are connected
+            self.__reg_thread = threading.Thread(target=self.__register_runtime_send,
+                args=(
+                    self.__rt.create_runtime_msg(),
+                    settings.get('runtime.reg_timeout_seconds', 5),
+                    settings.get('runtime.reg_attempts', 0),))
+            self.__reg_thread.start()
 
     def pubsub_error(self, desc, data):
         logger.error(desc, data)
-        pass
 
     def wait_reg(self, timeout_secs):
         evt_flag = self.__conn_event.wait(10)
         if not evt_flag:
-            raise RuntimeException("timeout waiting for MQTT connection.") 
+            raise RuntimeException("timeout waiting for MQTT connection.", "Could not connect.") 
                  
         evt_flag = self.__reg_event.wait(timeout_secs)
-        #if evt_flag == False: self.__reg_event.clear()
         return evt_flag
 
     def __keepalive(self, ka_interval_secs):
@@ -105,40 +108,48 @@ class RuntimeMngr(PubsubHandler):
             logger.debug("Sending keepalive.")
             self.__pubsub_client.message_publish(keepalive_msg)
             
-    def __register_runtime(self, reg_msg, timeout_secs, reg_attempts):
+    def __register_runtime_send(self, reg_msg, timeout_secs, reg_attempts):
         """Register thread; sends register messages every timeout interval
            until register event is set"""
 
+        reg_count = reg_attempts
+        reg_flag = False
         while True:
-            if reg_attempts > 0: 
-                reg_attempts = reg_attempts - 1
-                if reg_attempts == 0: break
+            if reg_count > 0: 
+                reg_count = reg_count - 1
+                if reg_count == 0: break
             logger.info("Runtime attempting to register...");
-            print("timeout_secs", timeout_secs, "reg_attempts", reg_attempts)
             self.__pubsub_client.message_publish(reg_msg)
-            evt_flag = self.wait_reg(5)
-            if evt_flag == True: break # event is set; registration response received
-            
-            
+            reg_flag = self.wait_reg(timeout_secs)
+            if reg_flag == True: break # event is set; registration response received
+
+        if not reg_flag:
+            raise RuntimeException("runtime registration failed.", "Could not register runtime after {} attempts.".format(reg_attempts))
+         
+        self.__register_runtime_done()
+         
+    def __register_runtime_done(self):
+        """Finish registration; subscribes to topics and starts keepalive"""
+        
         # remove subscription to reg topic
-        self.__pubsub_client.message_handler_remove(settings.topics.runtimes)
+        self.__pubsub_client.message_handler_remove(self.__rt.topics.runtimes)
 
         # subscribe to runtime control topic to receive module requests
-        self.__pubsub_client.message_handler_add(settings.topics.modules, self.control)
-                    
-        logger.info("Runtime registration done.")
-        
+        self.__pubsub_client.message_handler_add(self.__rt.topics.modules, self.control)
+                            
         # start keepalive
-        ka_interval_sec = self.__reg_details.get('ka_interval_sec')
+        ka_interval_sec = self.__reg_details.get('ka_interval_sec') 
         if ka_interval_sec:
             self.__ka_thread = threading.Thread(target=self.__keepalive,
                 args=(ka_interval_sec,))
             self.__ka_thread.start()
-        
+            
+        logger.info("Runtime registration done.")
+                
     def reg(self, decoded_msg):
         msg_data = decoded_msg.get('data')
         if msg_data.get('result') == Result.ok:
-            self.__reg_details = msg_data.get('details', {})
+            self.__reg_details = msg_data.get('details', { 'ka_interval_sec': 60}) # default ka interval to 60 secs
             self.__reg_event.set()
 
     def control(self, msg):
@@ -164,21 +175,20 @@ class RuntimeMngr(PubsubHandler):
     def __module_exit(self, mod_uuid):
         logger.debug(f"module {mod_uuid} exited")
         
-        delete_msg = None
-        
         # check if this is due to a delete request
-        delete_msg = self.__pending_delete_msgs.pop(mod_uuid)
-        
-        # if this is not a pending delete request, send delete notification
-        if delete_msg == None:
+        delete_msg = None
+        try:
+            delete_msg = self.__pending_delete_msgs.pop(mod_uuid)
+        except KeyError:
+            # if this is not a pending delete request, send delete notification
             module = None
             # remove module from our module list; send a delete notification        
             try:
                 module = self.__modules.pop(mod_uuid).module
             except KeyError as ke:
-                raise RuntimeException("extraneous delete notification", "Module {mod_uuid} is not known") from ke
+                raise RuntimeException("extraneous delete notification", "Module {} is not known".format(mod_uuid)) from ke
             else:         
-                delete_msg = self.__rt.delete_module_msg(module.delete_attrs())
+                delete_msg = self.__rt.delete_module_msg(module.delete_attrs(self.__rt.uuid))
         
         if delete_msg != None:
             self.__pubsub_client.message_publish(delete_msg)
@@ -190,11 +200,11 @@ class RuntimeMngr(PubsubHandler):
         mod_uuid = mod.get('uuid')
         if mod_uuid: 
             if self.__modules.get(mod_uuid):
-                raise InvalidArgument('uuid', 'Module {} already exists'.format(mod_uuid))
+                raise InvalidArgument("uuid", "Module {} already exists".format(mod_uuid))
             
         logger.info(f"Starting module {mod_uuid}.")
             
-        module = Module(io_base_topic = self.__module_io_base_topic, **mod)
+        module = Module(io_base_topic = self.__rt.topics.io, **mod)
 
         self.__modules[module.uuid] = MngrModule(module, self.__pubsub_client)
         self.__modules[module.uuid].start(lambda: self.__module_exit(module.uuid))
@@ -208,14 +218,14 @@ class RuntimeMngr(PubsubHandler):
         mod = delete_msg.get('data')
         mod_uuid = mod.get('uuid')
         if not mod_uuid: 
-            raise MissingField(f"UIID field missing (trying to delete)")
+            raise MissingField("UIID field missing (trying to delete)")
         
         logger.info(f"Stopping module {mod_uuid}.")
         
         try:
             mod = self.__modules.pop(mod_uuid)
         except KeyError as ke:
-            raise InvalidArgument('uuid', f"Module {mod_uuid} does not exist (trying to delete)") from ke
+            raise InvalidArgument("uuid", "Module {} does not exist (trying to delete)".format(mod_uuid)) from ke
 
         # NOTE: a delete module will be sent by module exit handler
         mod.stop()
