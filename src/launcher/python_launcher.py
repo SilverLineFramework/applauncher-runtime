@@ -27,7 +27,7 @@ class PythonLauncher(ModuleLauncher):
         (filetype='PY' as mapped in .appsettings.py)
     """
          
-    def __init__(self, launcher_settings: Dict, module: Module, pubsubc: PubsubListner = None, force_container_name=False) -> None:
+    def __init__(self, launcher_settings: Dict, module: Module, pubsubc: PubsubListner = None) -> None:
         """
             Init a python launcher for a module receiving laucher settings as argument and the module data
             Save info to setup a streamer to publish/subcribe stdin, stdout, stderr of the module
@@ -40,14 +40,11 @@ class PythonLauncher(ModuleLauncher):
                     module object
                 pubsubc:
                     a pubsub client object the streamer uses to publish messages
-                force_container_name:
-                    force container name to match module name; contrary to module names, container names are unique so this is mostly for debug purposes
         """        
         self._settings = launcher_settings
         self._module = module
         self._ctn_sock = None
         self._pubsubc = pubsubc
-        self._force_container_name = force_container_name
 
         # create repo builder instance from settings option
         self._file_repo = ClassUtils.class_instance_from_settings_class_path('repository.class', do_cleanup=False)
@@ -91,8 +88,9 @@ class PythonLauncher(ModuleLauncher):
                         'workdir_mount_source': str(self._files_info.path),
                         'exit_notify': exit_notify }
         
-        # add container name if force_container_name
-        if self._force_container_name: start_attached_params['name'] = self._module.name
+        # add container name if force_container_name is true in launcher settings
+        # contrary to module names, container names are unique so this is mostly for debug purposes (defaults to False)
+        if self._settings.docker.force_container_name: start_attached_params['name'] = self._module.name
 
         # start container with stdin, stdout, stderr attached to a socket
         self._ctn_sock = self._docker_client.start_attached(**start_attached_params)

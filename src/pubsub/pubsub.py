@@ -25,6 +25,7 @@ class PubsubListner(Protocol):
     def message_handler_add(self,
                                     topic: str,
                                     handler: Callable[[PubsubMessage], None],
+                                    json_decode: bool=True,
                                     include_subtopics: bool=False
                                     ) -> None:
         """Subscribes to topic and adds a message handler for messages received
