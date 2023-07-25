@@ -126,6 +126,10 @@ class Runtime(ModelBase, dict):
     def apis(self, rt_apis):
         self['apis'] = rt_apis
 
+    @property
+    def topics(self):
+        return self.__topics
+    
     def _create_delete_runtime_msg(self, action) -> PubsubMessage:
         """Create/Delete (according to action) runtime message.
         Parameters

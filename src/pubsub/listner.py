@@ -5,7 +5,7 @@ import traceback
 import json
 import ssl as ssl_lib
 from json.decoder import JSONDecodeError
-from typing import Dict, Any, Callable
+from typing import Dict, Tuple, Any, Callable
 import uuid
 import paho.mqtt.client as paho
 from logzero import logger
@@ -37,7 +37,7 @@ class MQTTListner(paho.Client, PubsubListner):
         Client ID for paho MQTT client.
     """
 
-    __topic_dispatcher: Dict[str, Any]
+    __topic_dispatcher: Dict[str, Tuple[Any, bool]]
     __subscribe_mid: Dict[int, str]
     
     def __init__(self,
@@ -130,6 +130,7 @@ class MQTTListner(paho.Client, PubsubListner):
     def message_handler_add(self,
                                 topic: str,
                                 handler: Callable[[PubsubMessage], None],
+                                json_decode: bool=True,
                                 include_subtopics: bool=False
                                 ) -> None:
         """
@@ -149,7 +150,7 @@ class MQTTListner(paho.Client, PubsubListner):
         (result, mid) = self.subscribe(subs_topic)
         if result == paho.MQTT_ERR_SUCCESS:
             self.__subscribe_mid[mid] = subs_topic
-        self.__topic_dispatcher[topic] = handler
+        self.__topic_dispatcher[topic] = (handler, json_decode)
 
     def message_handler_remove(self, topic: str) -> None:
         """unsubscribes to topic and removes message handler
@@ -172,16 +173,19 @@ class MQTTListner(paho.Client, PubsubListner):
             pubsub_msg : PubsubMessage
                 message (topic, payload) to publish
         """
+
         payload = json.dumps(pubsub_msg.payload)
         logger.debug(f"Publish msg: {str(pubsub_msg.topic)}: {payload}")
         self.publish(pubsub_msg.topic, payload)
 
-    def __json_decode(self, msg: PubsubMessage) -> PubsubMessage:
-        """Decode JSON MQTT message."""
+    def __decode_msg(self, msg: PubsubMessage, decode_json: bool) -> PubsubMessage:
+        """Attempt to decode JSON MQTT message."""
         payload = str(msg.payload.decode("utf-8", "ignore"))
         if payload[0] == "'":
             payload = payload[1:len(payload) - 1]
-        return PubsubMessage(msg.topic, json.loads(payload))
+        if decode_json:
+            payload = json.loads(payload)
+        return PubsubMessage(msg.topic, payload)
 
     def __on_message(self, msg: PubsubMessage) -> PubsubMessage:
         """Message handler internals.
@@ -190,14 +194,19 @@ class MQTTListner(paho.Client, PubsubListner):
         a ```Message``` to send in response, ```None``` for no response, or
         raise an ```RuntimeException``` which should be given as a response.
         """
-
         try:
-            decoded_mqtt_msg = self.__json_decode(msg)
+            (handler, decode_json) = self.__topic_dispatcher.get(msg.topic)
+        except TypeError:
+            return PubsubMessage(self._error_topic,
+                {"desc": "No dispatcher for message on topic", "data": msg.topic})
+            
+        try:
+            decoded_mqtt_msg = self.__decode_msg(msg, decode_json)
         except JSONDecodeError:
             return PubsubMessage(self._error_topic,
-                {"desc": "Invalid JSON", "data": msg.payload})
+                {"desc": "Invalid JSON", "data": msg.payload.decode('utf-8')})
 
-        handler = self.__topic_dispatcher.get(decoded_mqtt_msg.topic)
+#        handler = self.__topic_dispatcher.get(decoded_mqtt_msg.topic)
 
         if callable(handler):
             try:

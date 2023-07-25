@@ -62,7 +62,7 @@ class PubsubStreamer:
         read_thread.start()
         
         # subscribe to stdin topic and add handler to route messages to socket
-        self._pubsub_client.message_handler_add(self._topics.get(Streams.stdin), self.input)
+        self._pubsub_client.message_handler_add(self._topics.get(Streams.stdin), self.input, json_decode=False)
                         
     def output(self) -> None:
         """ Read output from socket, publish to mqtt 
@@ -96,9 +96,10 @@ class PubsubStreamer:
             
     def input(self, msg: PubsubMessage) -> None:
         """ Receive input msgs from mqtt, output to socket """
-        data = msg.payload
+        data = f"{msg.payload}\n"
         if self._encode_decode:
-            data = msg.payload.encode()
+            os.write(self._sock.fileno(), data.encode('utf-8'))
+            return
         os.write(self._sock.fileno(), data)
 
     @classmethod

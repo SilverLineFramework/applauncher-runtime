@@ -26,5 +26,9 @@ settings = Dynaconf(
 
         # launcher required settings
         Validator("launcher.apis", must_exist=True),
+
+        # username and password are an empty string by default
+        Validator("mqtt.password", default=""),
+        Validator("mqtt.username", default=""),
     ],
 )

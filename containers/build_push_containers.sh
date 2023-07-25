@@ -19,27 +19,25 @@ export $(grep -v '^#' .secrets.env | xargs)
 
 SCRIPT_DIR="${PWD}"
 
-for folder in *; do
-    if [ -d "$folder" ]; then
-      [ -f "$folder/VERSION" ] && VERSION=$(cat "$folder/VERSION")
-      IMG_TAG=${VERSION:-latest}
-      IMG_NAME="$folder"
+# each subfolder is a docker image to be created
+for folder in */; do
+    folder=${folder%/} # remove trailing /
+    [ -f "$folder/VERSION" ] && VERSION=$(cat "$folder/VERSION")
+    IMG_TAG=${VERSION:-latest}
+    IMG_NAME="$folder"
 
-      cd $SCRIPT_DIR/$folder
+    cd $SCRIPT_DIR/$folder
 
-      echo "building: "$IMG_NAME:$IMG_TAG
+    echo "building: "$IMG_NAME:$IMG_TAG
 
-      # create a multiarch build
-      #docker buildx create --use
-      #docker buildx build --platform=linux/arm64/v8,linux/amd64 . -t $DOCKER_USER/$IMG_NAME
-      docker build . -t $DOCKER_USER/$IMG_NAME
-      docker tag $DOCKER_USER/$IMG_NAME:latest $DOCKER_USER/$IMG_NAME:$IMG_TAG
+    docker build . -t $DOCKER_USER/$IMG_NAME
+    docker tag $DOCKER_USER/$IMG_NAME:latest $DOCKER_USER/$IMG_NAME:$IMG_TAG
 
-      if [[ $PUSH_IMG = "true" ]]; then
-        echo $DOCKER_PASSWD | docker login --username $DOCKER_USER --password-stdin
-        docker push $DOCKER_USER/$IMG_NAME
-        docker push $DOCKER_USER/$IMG_NAME:$IMG_TAG
-        echo "pushed: "$DOCKER_USER/$IMG_NAME:$IMG_TAG
-      fi
+    if [[ $PUSH_IMG = "true" ]]; then
+      echo $DOCKER_PASSWD | docker login --username $DOCKER_USER --password-stdin
+      docker push $DOCKER_USER/$IMG_NAME
+      docker push $DOCKER_USER/$IMG_NAME:$IMG_TAG
+      echo "pushed: "$DOCKER_USER/$IMG_NAME:$IMG_TAG
     fi
+    cd $SCRIPT_DIR
 done

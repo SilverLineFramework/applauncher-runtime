@@ -1,19 +1,19 @@
+# by default will use settings.yaml, .appsettings.yaml and .secrets.yaml from config folder
 run: venv
 		$(VENV)/python3 src/main.py $(ARGS)
 
-# example how to run with different settings root
-run_arenaxr: venv
-		ROOT_PATH_FOR_DYNACONF="config/arenaxr" $(VENV)/python3 src/main.py $(ARGS)
+# how to specify a folder for settings inside config 
+# 'make config/settings-folder' will use the settings files in this folder
+# 'config/settings-folder' should have: settings.yaml, .appsettings.yaml and .secrets.yaml
+config/%: venv
+		ROOT_PATH_FOR_DYNACONF="$@" $(VENV)/python3 src/main.py $(ARGS)
 
-# example how to run with different settings
-run_w_settings: venv
-		SETTINGS_FILE_FOR_DYNACONF="new_settings.yaml;.appsettings.yaml;.secrets.yaml" $(VENV)/python3 src/main.py $(ARGS)
-
+# this shows how to specify specific settings files (inside conf folder)
 tests: venv
-		$(VENV)/python3 src/test/run_tests.py
+		SETTINGS_FILE_FOR_DYNACONF="dev-1/settings.yaml;dev-1/.appsettings.yaml;dev-1/.secrets.yaml" $(VENV)/python3 src/test/run_tests.py
 
-test-docker: venv
-		$(VENV)/python3 src/test-docker.py
+test-dockerio: venv
+		$(VENV)/python3 src/test/test_scripts/test_docker_io.py
 
 show-req: venv
 		$(VENV)/pip3 freeze

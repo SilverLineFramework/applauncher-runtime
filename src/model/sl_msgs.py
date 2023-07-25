@@ -7,7 +7,7 @@ import json
 from pubsub.pubsub_msg import PubsubMessage
 from common import MissingField
 from model.runtime_types import Result, MessageType
-
+    
 class SlMsgs:
 
     def __convert_str_attrs(self, d):
@@ -21,32 +21,32 @@ class SlMsgs:
             except Exception as _:
                 pass
     
-    def __prepare_msg_attrs(self, data, attr_replace={}):
-        """Replaces attributes given in attr_replace  
+    def __prepare_msg_attrs(self, data, attr_mapping={}):
+        """Replaces attributes given in attr_mapping  
         Parameters
         ----------
             data (dict): source message data
-            attr_replace (dict): dictionary of attributes to replace in data
-                e.g. attr_replace = { "id": "uuid"} => means that "id" in data will be replaced by "uuid"
+            attr_mapping (dict): dictionary of attributes to replace in data
+                e.g. attr_mapping = { "id": "uuid"} => means that "id" in data will be replaced by "uuid"
         """
         try: 
             d = dict(data.copy())
-            for key in attr_replace:
-                d[attr_replace[key]] = d.pop(key)
+            for key in attr_mapping:
+                d[attr_mapping[key]] = d.pop(key)
         except (KeyError, TypeError) as key_exc:
             raise MissingField(d) from key_exc
         
         return d
         
-    def __init__(self, attr_replace={}):
+    def __init__(self, attr_mapping={}):
         """Intanciate runtime messages. Translate between internal runtime data and messages
         
         Parameters
         ----------
-            attr_replace (dict): dictionary of attributes replaced in the runtime/module attributes
-                e.g. attr_replace = { "id": "uuid"} => means that "id" in runtime/module attributes will be replaced by "uuid" in messages
+            attr_mapping (dict): dictionary of attributes replaced in the runtime/module attributes
+                e.g. attr_mapping = { "id": "uuid"} => means that "id" in runtime/module attributes will be replaced by "uuid" in messages
         """
-        self.attr_replace = attr_replace
+        self.attr_mapping = attr_mapping
         
     def error(self, data):
         """Error message to stderr topic."""
@@ -63,7 +63,7 @@ class SlMsgs:
 
     def req(self, topic, action, req, convert=True) -> PubsubMessage:
         """Request base message."""
-        data = self.__prepare_msg_attrs(req, self.attr_replace) 
+        data = self.__prepare_msg_attrs(req, self.attr_mapping) 
         
         if convert:
             self.__convert_str_attrs(data)
