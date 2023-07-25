@@ -9,6 +9,9 @@ import threading
 from enum import Enum
 from logzero import logger
 import uuid
+import subprocess
+import json
+import time
 
 from common import LauncherException
 from .launcher import QoSParams
@@ -40,9 +43,10 @@ class DockerClient(QoSParams):
                     'detach': True,
                     #'cap_drop': 'all',
                     'working_dir': '/usr/src/app',
-                    'cpu_count': 1,
-                    'cpu_period': 100000,
-                    'cpu_quota': 25000 }
+                    #'cpu_count': 1,
+                    #'cpu_period': 100000,
+                    #'cpu_quota': 25000 
+                    }
                 }
     # attach_socket options: include stdin, stdout, stderr
     _CTN_SOCK_OPTS = {'stdin': 1, 'stdout': 1, 'stderr': 1, 'stream': 1}
@@ -67,7 +71,13 @@ class DockerClient(QoSParams):
         
     def wait_for_container(self, container, notify_call):
         """Called within dedicated thread to wait for a container to exit"""
-        container.wait(timeout=None, condition='not-running')
+
+        while True:
+            time.sleep(1)
+            status = self._container.status
+            if not (status == DockerContainerStatus.running or status == DockerContainerStatus.created):
+                break
+
         # container exited; perform notification call given
         notify_call()
         
@@ -114,10 +124,11 @@ class DockerClient(QoSParams):
                 kwargs['volumes'] = [ f"{workdir_mount_source}:{self._settings['workdir']}" ]
                             
         # merge user options with ours such; ours will override user options
-        run_options = {**kwargs, **self._run_opts}
+        run_options = {'image':self.image, 'command': command, **self._run_opts, **kwargs}
 
         # run container
-        self._container = self._client.containers.run(image=self.image, command=command, **run_options)
+        self._container = self._client.containers.run(**run_options) 
+
 
         # attach socket
         sock = self._container.attach_socket(params=DockerClient._CTN_SOCK_OPTS)
@@ -168,10 +179,31 @@ class DockerClient(QoSParams):
         if not self._container:
             raise LauncherException(f"[DockerClient] Container not running!")
         
+        
         stats = self._container.stats(decode=None, stream = False)
-        cpu_percent, self._stats['previous_cpu'], self._stats['previous_system'] = self.__get_cpu_stats(stats, self._stats['previous_cpu'], self._stats['previous_system'])
+        #cpu_percent, self._stats['previous_cpu'], self._stats['previous_system'] = self.__get_cpu_stats(stats, self._stats['previous_cpu'], self._stats['previous_system'])
         net_stats = self.__get_network_stats(stats)
-        return { 'cpu_percent': cpu_percent, **net_stats }
+
+        stats_cmd = f'docker stats --no-stream {self._container.id} --format "{{{{ json . }}}}"'
+        popen_result = subprocess.Popen(stats_cmd, shell=True, stdout=subprocess.PIPE).stdout.read()
+        print(popen_result.decode())
+        dstats = json.loads(popen_result.decode())
+                
+        mem_usage_bytes = 0.0
+        try:
+            mem_usage_bytes = float(dstats['MemUsage'].split('MiB', 1)[0]) * 1000000
+        except ValueError:
+            pass
+
+        cpu_percent = 0.0
+        try:
+            cpu_percent = float(dstats['CPUPerc'].replace("%", ""))
+        except ValueError:
+            pass
+            
+        stats = { 'cpu_percent': cpu_percent, 'mem_usage': mem_usage_bytes , **net_stats }
+        
+        return stats
     
     def stop(self):
         if not self._container:

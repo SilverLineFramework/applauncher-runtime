@@ -59,6 +59,9 @@ class TestLauncher(unittest.TestCase):
         popen_result = str(subprocess.Popen(f"docker ps -f name={self._MOD_NAME}", shell=True, stdout=subprocess.PIPE).stdout.read())
         
         self.assertTrue(popen_result.find(self._MOD_NAME))
+
+        stats = mod_launcher.get_stats()
+        print("Stats:", stats)
         
         # wait to receive expected output from container
         evt_flag = self.pubsub_out_received_evt.wait(15)

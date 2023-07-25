@@ -21,7 +21,7 @@ class Module(ModelBase, dict):
     _ka_attrs = ['uuid', 'name']
 
     # attributes we return for delete requests
-    _delete_attrs = ['uuid', 'name']
+    _delete_attrs = ['type', 'uuid', 'name', 'parent']
 
     def __init__(self, io_base_topic='realm/proc/io/rt_uuid', uuid=str(uuid4()), attr_replace=None, **kwargs):
         """Intanciate a Module  
@@ -185,6 +185,6 @@ class Module(ModelBase, dict):
         keepalive = dict(map(lambda k: (k, self.get(k)), self._ka_attrs))
         return { **keepalive, **mod_stats }
         
-    def delete_attrs(self, parent):
+    def delete_attrs(self):
         delete = dict(map(lambda k: (k, self.get(k)), self._delete_attrs))
-        return { **delete, "parent": parent }
+        return { **delete }

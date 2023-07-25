@@ -64,6 +64,10 @@ if __name__ == "__main__":
         action="version",
         version="%(prog)s (version {version})".format(version=release.__version__))
 
+    parser.add_argument(
+        "--daemon",
+        action="store_true")
+
     args = parser.parse_args()
     
     try:
