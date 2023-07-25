@@ -34,4 +34,6 @@ repository:
 launcher:
   # launcher general settings
   pipe_stdout: true
-
+  # these will be added to env passed to module
+  env: 
+    ENABLE_INTERPRETER=1

@@ -10,17 +10,14 @@ def _read_stdin():
   for line in sys.stdin:
       print("stdin echo:", line)
       # stop when we receive 'exit' or 'quit'
-      llower = line.rstrip().lower()
-      if 'exit' == llower or 'quit' == llower:
+      if 'exit' == line.rstrip().lower() or 'quit' == line.rstrip().lower():
           break
 
 def main():
   print('Number of arguments:', len(sys.argv), 'arguments.')
   print('Argument List:', str(sys.argv)) 
-  print("MQTTH=",os.getenv('MQTTH'))  
-  print("REALM=",os.getenv('REALM'))  
-  print("SCENE=",os.getenv('SCENE'))
-  print("NAMESPACE=",os.getenv('NAMESPACE'))  
+  print('Evironment:\n') 
+  print(os.environ, '\n')
   t = threading.Thread(name='stdin_thread', target=_read_stdin)
   t.start()
   
@@ -33,3 +30,4 @@ def main():
         
 if __name__ == "__main__":
     main()
+

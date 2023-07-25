@@ -44,7 +44,8 @@ class PythonLauncher(ModuleLauncher):
         self._settings = launcher_settings
         self._module = module
         self._ctn_sock = None
-        self._pubsubc = pubsubc
+        if settings.launcher.pipe_stdout: self._pubsubc = pubsubc
+        else: self._pubsubc = None
 
         # create repo builder instance from settings option
         self._file_repo = ClassUtils.class_instance_from_settings_class_path('repository.class', do_cleanup=False)
@@ -78,13 +79,27 @@ class PythonLauncher(ModuleLauncher):
         # container cmd should accept the filename and list of arguments (which can be a list or a string) 
         cmd = [self._settings.cmd, fnp.name] + (self._module.args.split() if isinstance(self._module.args, str) else self._module.args)
     
-        logger.debug(f"Starting module {self._module.name}. cmd: {cmd}")
-        
+        # add launcher env entries
+        mod_env = self._module.env
+        if settings.launcher.env:
+            for evar in settings.launcher.env.split(' '):
+                if isinstance(mod_env, dict):
+                    evar_splitted = evar.split('=')
+                    print(f"len {len(evar_splitted)}")
+                    if len(evar_splitted) == 2: mod_env[evar_splitted[0]] = evar_splitted[1]
+                elif isinstance(mod_env, list):
+                    print(f"append {evar}")
+                    mod_env.append(evar)
+                else:
+                    logger.warn("Module env must be a dictionary or a list")
+                    
+        logger.debug(f"Starting module {self._module.name}. cmd: {cmd}, env: {mod_env}")
+    
         # prepare parameters to start container
         start_attached_params = { 
                         'command': cmd,
                         'id': self._module.uuid,
-                        'environment': self._module.env,
+                        'environment': mod_env,
                         'workdir_mount_source': str(self._files_info.path),
                         'exit_notify': exit_notify }
         
