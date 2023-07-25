@@ -30,7 +30,7 @@ for folder in */; do
 
     echo "building: "$IMG_NAME:$IMG_TAG
 
-    docker build . -t $DOCKER_USER/$IMG_NAME
+    docker build . -t $DOCKER_USER/$IMG_NAME --no-cache
     docker tag $DOCKER_USER/$IMG_NAME:latest $DOCKER_USER/$IMG_NAME:$IMG_TAG
 
     if [[ $PUSH_IMG = "true" ]]; then

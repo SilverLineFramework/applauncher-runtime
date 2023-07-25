@@ -16,10 +16,10 @@ launcher:
     cmd: '/entrypoint.sh'
     docker: # this launcher uses docker with these options
       # use this image and workdir
-      image: slframework/slruntime-python-runner
+      image: slframework/slruntime-python-runner-repo-head
       workdir: /usr/src/app
       monitor_interval_secs: 0.5
-      force_container_name: True  # force container name to match module name
+      #force_container_name: True  # force container name to match module name
       
       run_opts: # run options
         auto_remove: True
@@ -54,10 +54,11 @@ runtime:
 # realm and uuid (defined in runtime section - in settings.yaml) are replaced by values
 topics:
   runtimes: "@format {this.runtime.realm}/proc/reg" # OLD (replaced by runtimes); to remove
+  modules_root: "@format {this.runtime.realm}/proc/control" # to send module delete msgs; to remove
   modules: "@format {this.runtime.realm}/proc/control/{this.runtime.uuid}" # OLD (replaced by modules); to remove
   #runtimes: "@format {this.runtime.realm}/proc/runtimes" # registration topic
   #modules: "@format {this.runtime.realm}/proc/modules/{this.runtime.uuid}" # module control
-  io: "@format {this.runtime.realm}/proc/io/{this.runtime.uuid}" # runtime error messages and root for modules stdin, stdout, stderr 
+  io: "@format {this.runtime.realm}/proc/io" # runtime error messages and root for modules stdin, stdout, stderr
   keepalive: "@format {this.runtime.realm}/proc/keepalive/{this.runtime.uuid}" # runtime keepalive messages
 
 # where/how we keep program files

@@ -6,7 +6,7 @@ loglevel: DEBUG
 
 # runtime settings
 runtime:
-  name: applauncher
+  name: pytest
   #uuid: # leave blank to generate a new uuid; or set a fixed uuid value
   uuid: 5b66b33e-5dab-4158-8b50-b4363b67fd16 # this would make the runtime have a fixed uuuid
   reg_attempts: 0 # 0 = infinite
