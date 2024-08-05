@@ -57,7 +57,7 @@ class SlMsgs:
         if convert:
             self.__convert_str_attrs(details)
         return PubsubMessage(topic, {
-            "object_id": str(src_uuid), "action": action, "type": MessageType.rt_response,
+            "object_id": str(src_uuid), "action": action, "type": MessageType.response,
             "data": {"result": result, "details": details}
         })
 
@@ -69,7 +69,7 @@ class SlMsgs:
             self.__convert_str_attrs(data)
 
         return PubsubMessage(topic, {
-            "object_id": str(uuid.uuid4()), "action": action, "type": MessageType.rt_request,
+            "object_id": str(uuid.uuid4()), "action": action, "type": MessageType.request,
             "data": data
         })
     

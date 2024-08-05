@@ -31,7 +31,6 @@ class RuntimeMngr(PubsubHandler):
         self.__reg_event = threading.Event()
         self.__ka_exit = threading.Event()
         self.__pending_delete_msgs: Dict[str, PubsubMessage] = {} # dictionary messages waiting module exit notification
-        self.__reg_details = { 'ka_interval_sec': 60}
 
         # arguments passed in constructor will override settings
         runtime_args = {**settings.get('runtime'), **kwargs} 
@@ -70,7 +69,7 @@ class RuntimeMngr(PubsubHandler):
         # subscribe to runtimes to receive registration confirmation
         self.__pubsub_client.message_handler_add(self.__rt.topics.runtimes, self.reg)
 
-        reg_attempts = settings.get('runtime.reg_attempts', 0)
+        reg_attempts = settings.get('runtime.reg_attempts')
         if reg_attempts < 0:
             # skip registration
             self.__register_runtime_done()
@@ -79,8 +78,9 @@ class RuntimeMngr(PubsubHandler):
             self.__reg_thread = threading.Thread(target=self.__register_runtime_send,
                 args=(
                     self.__rt.create_runtime_msg(),
-                    settings.get('runtime.reg_timeout_seconds', 5),
-                    settings.get('runtime.reg_attempts', 0),))
+                    settings.get('runtime.reg_timeout_seconds'),
+                    settings.get('runtime.reg_attempts'),
+                    settings.get('runtime.reg_fail_error')))
             self.__reg_thread.start()
 
     def pubsub_error(self, desc, data):
@@ -108,7 +108,7 @@ class RuntimeMngr(PubsubHandler):
             logger.debug("Sending keepalive.")
             self.__pubsub_client.message_publish(keepalive_msg)
             
-    def __register_runtime_send(self, reg_msg, timeout_secs, reg_attempts):
+    def __register_runtime_send(self, reg_msg, timeout_secs, reg_attempts, reg_fail_error):
         """Register thread; sends register messages every timeout interval
            until register event is set"""
 
@@ -122,9 +122,12 @@ class RuntimeMngr(PubsubHandler):
             self.__pubsub_client.message_publish(reg_msg)
             reg_flag = self.wait_reg(timeout_secs)
             if reg_flag == True: break # event is set; registration response received
-
+        
         if not reg_flag:
-            raise RuntimeException("runtime registration failed.", "Could not register runtime after {} attempts.".format(reg_attempts))
+            if reg_fail_error: raise RuntimeException("runtime registration failed.", "Could not register runtime after {} attempts.".format(reg_attempts))
+            else: 
+                logger.info("No registration response after {} attempts.".format(reg_attempts))
+                self.__reg_event.set()
          
         self.__register_runtime_done()
          
@@ -138,7 +141,7 @@ class RuntimeMngr(PubsubHandler):
         self.__pubsub_client.message_handler_add(self.__rt.topics.modules, self.control)
                             
         # start keepalive
-        ka_interval_sec = self.__reg_details.get('ka_interval_sec') 
+        ka_interval_sec = self.__rt.ka_interval_sec
         if ka_interval_sec:
             self.__ka_thread = threading.Thread(target=self.__keepalive,
                 args=(ka_interval_sec,))
@@ -149,19 +152,18 @@ class RuntimeMngr(PubsubHandler):
     def reg(self, decoded_msg):
         msg_data = decoded_msg.get('data')
         if msg_data.get('result') == Result.ok:
-            self.__reg_details = msg_data.get('details', { 'ka_interval_sec': 60}) # default ka interval to 60 secs
             self.__reg_event.set()
 
     def control(self, msg):
         """Handle control messages."""
         # runtime response -> is a message we sent, should be ignored
         msg_type = msg.get('type')
-        if msg_type == MessageType.rt_response:
+        if msg_type == MessageType.response:
             return None
 
         logger.debug("\n[Control] {}".format(msg.payload))
 
-        if msg_type == MessageType.orch_request:
+        if msg_type == MessageType.request:
             action = msg.get('action')
             if action == Action.create:
                 return self.__create_module(msg)

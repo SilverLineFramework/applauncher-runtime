@@ -179,7 +179,6 @@ class DockerClient(QoSParams):
         if not self._container:
             raise LauncherException(f"[DockerClient] Container not running!")
         
-        
         stats = self._container.stats(decode=None, stream = False)
         #cpu_percent, self._stats['previous_cpu'], self._stats['previous_system'] = self.__get_cpu_stats(stats, self._stats['previous_cpu'], self._stats['previous_system'])
         net_stats = self.__get_network_stats(stats)

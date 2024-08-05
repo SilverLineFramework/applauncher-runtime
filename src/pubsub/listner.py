@@ -50,7 +50,7 @@ class MQTTListner(paho.Client, PubsubListner):
                 ssl: bool= False,
                 cid: str= str(uuid.uuid4())) -> None:
 
-        super().__init__(cid)
+        super().__init__(paho.CallbackAPIVersion.VERSION1, cid)
 
         self._error_topic = error_topic
         self.__topic_dispatcher = {}

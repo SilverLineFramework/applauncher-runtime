@@ -111,6 +111,22 @@ class Runtime(ModelBase, dict):
         self['reg_timeout_seconds'] = rt_reg_timeout_seconds
 
     @property
+    def reg_fail_error(self):
+        return self['reg_fail_error']
+
+    @reg_fail_error.setter
+    def reg_fail_error(self, rt_reg_fail_error):
+        self['reg_fail_error'] = rt_reg_fail_error
+
+    @property
+    def ka_interval_sec(self):
+        return self['ka_interval_sec']
+
+    @ka_interval_sec.setter
+    def ka_interval_sec(self, rt_ka_interval_sec):
+        self['ka_interval_sec'] = rt_ka_interval_sec
+
+    @property
     def realm(self):
         return self['realm']
 

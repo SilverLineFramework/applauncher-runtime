@@ -10,10 +10,10 @@ config/%: venv
 
 # this shows how to specify specific settings files (inside conf folder)
 tests: venv
-		SETTINGS_FILE_FOR_DYNACONF="dev-1/settings.yaml;dev-1/.appsettings.yaml;dev-1/.secrets.yaml" $(VENV)/python3 src/test/run_tests.py
+		SETTINGS_FILE_FOR_DYNACONF="dev-1/settings.yaml;dev-1/.appsettings.yaml;dev-1/.secrets.yaml" $(VENV)/python3 src/tests/run_tests.py
 
 test-dockerio: venv
-		$(VENV)/python3 src/test/test_scripts/test_docker_io.py
+		$(VENV)/python3 src/tests/test_scripts/test_docker_io.py
 
 show-req: venv
 		$(VENV)/pip3 freeze
@@ -29,3 +29,7 @@ Makefile.venv:
 	echo "5afbcf51a82f629cd65ff23185acde90ebe4dec889ef80bbdc12562fbd0b2611 *Makefile.fetched" \
 		| shasum -a 256 --check - \
 		&& mv Makefile.fetched Makefile.venv
+
+clean:
+	rm -fr .venv
+	find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete

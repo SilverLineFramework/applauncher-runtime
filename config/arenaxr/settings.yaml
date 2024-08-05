@@ -11,7 +11,9 @@ runtime:
   uuid: 5b66b33e-5dab-4158-8b50-b4363b67fd16 # this would make the runtime have a fixed uuuid
   reg_attempts: 0 # 0 = infinite
   reg_timeout_seconds: 5
+  reg_fail_error: false  
   max_nmodules: 100
+  ka_interval_sec: 5
   realm: realm
 
 # mqtt username and password in .secrets.yaml

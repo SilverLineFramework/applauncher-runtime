@@ -11,13 +11,15 @@ runtime:
   uuid: 0b99e423-e94e-435d-8e75-a3a3bf19a1c8 # this would make the runtime have a fixed uuuid
   reg_attempts: 0 # -1 = skip registration; 0 = infinite
   reg_timeout_seconds: 5
+  reg_fail_error: false # registration failure causes the runtime to exit  
   max_nmodules: 100
+  ka_interval_sec: 5
   realm: realm
 
 # mqtt username and password in .secrets.yaml, if used 
-# username and password defualt to "" if not defined in .secrets.yaml
+# username and password default to "" if not defined in .secrets.yaml
 mqtt:
-  host: localhost
+  host: broker.hivemq.com
   port: 1883
   ssl: false
 

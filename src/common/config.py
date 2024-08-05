@@ -10,7 +10,13 @@ settings = Dynaconf(
         Validator("loglevel", default="INFO", is_in=["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]),
         
         # runtime required settings
-        Validator("runtime.name", "runtime.uuid", "runtime.runtime_type", "runtime.apis", "runtime.reg_attempts", "runtime.reg_timeout_seconds", "runtime.max_nmodules", "runtime.realm", must_exist=True),
+        Validator("runtime.name", "runtime.uuid", "runtime.runtime_type", "runtime.apis", must_exist=True),
+
+        Validator("runtime.reg_attempts", default=1),
+        Validator("runtime.reg_timeout_seconds", default=5),
+        Validator("runtime.reg_fail_error", default=True),
+        Validator("runtime.max_nmodules", default=100),
+        Validator("runtime.realm", default="realm"),
 
         # gen runtime uuid default value (if empty)
         Validator("runtime.uuid", default=str(uuid.uuid4())),

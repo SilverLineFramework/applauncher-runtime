@@ -17,10 +17,8 @@ class MessageType():
     """Message type enum."""
     rt = 'runtime'
     mod = 'module'
-    rt_request = 'arts_req'
-    rt_response = 'arts_resp'
-    orch_request = 'arts_req'
-    orch_response = 'arts_resp'
+    request = 'req'
+    response = 'resp'
 
 class FileTypes():
     """File types enum."""
