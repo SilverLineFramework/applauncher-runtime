@@ -16,6 +16,12 @@ class TestRuntimeMngr(unittest.TestCase):
         self.mod_name = 'pytest-47351aeee0bc'    
         # instanciate a topics object to create repeatable topics for testing 
         self.topics = RuntimeTopics(
+                                    runtimes="realm/proc/reg",
+                                    modules=f"realm/proc/control/{self.rt_uuid}", 
+                                    io=f"realm/proc/io",
+                                    keepalive=f"realm/proc/keepalive/{self.rt_uuid}")
+        
+        self.topics = RuntimeTopics(
                                     runtimes="realm/proc/runtimes",
                                     modules=f"realm/proc/modules/{self.rt_uuid}", 
                                     modules_root="realm/proc/modules", 
@@ -26,7 +32,7 @@ class TestRuntimeMngr(unittest.TestCase):
                                                 {
                                                     "object_id": str(uuid.uuid4()),
                                                     "action": "create",
-                                                    "type": "req",
+                                                    "type": "arts_req",
                                                     "data": {
                                                         "type": "module",
                                                         "uuid": self.mod_uuid,
@@ -49,7 +55,7 @@ class TestRuntimeMngr(unittest.TestCase):
                                                 {
                                                     "object_id": str(uuid.uuid4()),
                                                     "action": "delete",
-                                                    "type": "req",
+                                                    "type": "arts_req",
                                                     "data": {
                                                         "type": "module",
                                                         "uuid": self.mod_uuid,

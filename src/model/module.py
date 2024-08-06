@@ -15,7 +15,7 @@ class Module(ModelBase, dict):
     _required_attrs = ['uuid', 'name', 'filename', 'filetype']
     
     # if True, only accepts declared attributes at init
-    _strict = True
+    _strict = False
 
     # attributes we return for keepalive
     _ka_attrs = ['uuid', 'name']

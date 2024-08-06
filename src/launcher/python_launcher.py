@@ -93,6 +93,10 @@ class PythonLauncher(ModuleLauncher):
                 else:
                     logger.warn("Module env must be a dictionary or a list")
                     
+
+        # add PROGRAM_OBJECT_ID
+        mod_env.append(f"PROGRAM_OBJECT_ID={self._module.uuid}")
+
         logger.debug(f"Starting module {self._module.name}. cmd: {cmd}, env: {mod_env}")
     
         # prepare parameters to start container
