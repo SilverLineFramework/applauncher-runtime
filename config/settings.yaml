@@ -13,7 +13,7 @@ runtime:
   reg_timeout_seconds: 5
   reg_fail_error: false # registration failure causes the runtime to exit  
   max_nmodules: 100
-  ka_interval_sec: 5
+  ka_interval_sec: 60
   realm: realm
 
 # mqtt username and password in .secrets.yaml, if used 

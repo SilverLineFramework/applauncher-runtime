@@ -6,10 +6,10 @@
 while getopts b flag
 do
     case "${flag}" in
-        b) push="false";;
+        b) push="";;
     esac
 done
-PUSH_IMG=${push:-"true"} # by default will push image
+PUSH_IMG=${push:-"--push"} # by default will push image
 
 # stop on first error
 set -e
@@ -19,6 +19,11 @@ export $(grep -v '^#' .secrets.env | xargs)
 
 SCRIPT_DIR="${PWD}"
 
+docker buildx rm mybuilder 2>/dev/null
+docker buildx create --name mybuilder --use --bootstrap
+
+echo $DOCKER_PASSWD | docker login --username $DOCKER_USER --password-stdin
+
 # each subfolder is a docker image to be created
 for folder in */; do
     folder=${folder%/} # remove trailing /
@@ -27,17 +32,7 @@ for folder in */; do
     IMG_NAME="$folder"
 
     cd $SCRIPT_DIR/$folder
-
     echo "building: "$IMG_NAME:$IMG_TAG
-
-    docker build . -t $DOCKER_USER/$IMG_NAME --no-cache
-    docker tag $DOCKER_USER/$IMG_NAME:latest $DOCKER_USER/$IMG_NAME:$IMG_TAG
-
-    if [[ $PUSH_IMG = "true" ]]; then
-      echo $DOCKER_PASSWD | docker login --username $DOCKER_USER --password-stdin
-      docker push $DOCKER_USER/$IMG_NAME
-      docker push $DOCKER_USER/$IMG_NAME:$IMG_TAG
-      echo "pushed: "$DOCKER_USER/$IMG_NAME:$IMG_TAG
-    fi
+    docker buildx build . --no-cache $PUSH_IMG --platform linux/amd64,linux/arm64/v8  -t $DOCKER_USER/$IMG_NAME:latest -t $DOCKER_USER/$IMG_NAME:$IMG_TAG    
     cd $SCRIPT_DIR
 done

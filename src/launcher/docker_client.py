@@ -78,6 +78,7 @@ class DockerClient(QoSParams):
             if not (status == DockerContainerStatus.running or status == DockerContainerStatus.created):
                 break
 
+        print("EXIT")
         # container exited; perform notification call given
         notify_call()
         
@@ -179,14 +180,20 @@ class DockerClient(QoSParams):
         if not self._container:
             raise LauncherException(f"[DockerClient] Container not running!")
         
-        stats = self._container.stats(decode=None, stream = False)
-        #cpu_percent, self._stats['previous_cpu'], self._stats['previous_system'] = self.__get_cpu_stats(stats, self._stats['previous_cpu'], self._stats['previous_system'])
-        net_stats = self.__get_network_stats(stats)
+        try: 
+            ctn_stats = self._container.stats(decode=False, stream=False)
+        except docker.errors.NotFound:
+            raise LauncherException(f"[DockerClient] Container not running!")
+
+        #cpu_percent, self._stats['previous_cpu'], self._stats['previous_system'] = self.__get_cpu_stats(ctn_stats, self._stats['previous_cpu'], self._stats['previous_system'])
+        net_stats = self.__get_network_stats(ctn_stats)
 
         stats_cmd = f'docker stats --no-stream {self._container.id} --format "{{{{ json . }}}}"'
         popen_result = subprocess.Popen(stats_cmd, shell=True, stdout=subprocess.PIPE).stdout.read()
-        print(popen_result.decode())
-        dstats = json.loads(popen_result.decode())
+        try: 
+            dstats = json.loads(popen_result.decode())
+        except JSONDecodeError:
+            return { **ctn_stats, 'cpu_percent': None, 'mem_usage': None , **net_stats }    
                 
         mem_usage_bytes = 0.0
         try:
@@ -200,7 +207,7 @@ class DockerClient(QoSParams):
         except ValueError:
             pass
             
-        stats = { 'cpu_percent': cpu_percent, 'mem_usage': mem_usage_bytes , **net_stats }
+        stats = { **ctn_stats, 'cpu_percent': cpu_percent, 'mem_usage': mem_usage_bytes , **net_stats }
         
         return stats
     
@@ -222,7 +229,7 @@ class DockerClient(QoSParams):
         """
         status = 'unknown'
         if not self._container:
-                raise LauncherException(f"[DockerClient] Container not running!")
+            return False
         
         status = self._container.status
         

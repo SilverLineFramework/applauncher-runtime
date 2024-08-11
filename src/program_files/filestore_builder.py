@@ -3,7 +3,7 @@
 Implements a ProgramFilesBuilder for the ARENA filestore
 """
 import tempfile
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 from urllib.request import urlopen
 from urllib.error import HTTPError
 from pathlib import Path
@@ -15,6 +15,8 @@ from common import ProgramFileException
 from .program_files_builder import ProgramFilesBuilder
 from .program_files import ProgramFilesInfo
 from .file_action import FileCopyAction
+
+from model import Module
 
 class FileStoreBuilder(ProgramFilesBuilder):
     """
@@ -32,19 +34,13 @@ class FileStoreBuilder(ProgramFilesBuilder):
         # new instance of program files
         self._files_info = ProgramFilesInfo(do_cleanup=do_cleanup)
 
-    def from_module_name(self, store_base_url: str, module_name: str) -> None:
-        """Get files from  module name in the form username/module_folder            
+    def from_module_data(self, store_base_url: str, module: Module) -> None:
+        """Get files from module data        
            NOTE: Creates the full url and calls from_url(); assumes directory index listing is enabled on the webserver
         """
-        url = f"{store_base_url}/users/{module_name}" # TODO: better handling of this path concat
-        self.from_url(url)
-
-    def from_module_filename(self, store_base_url: str, module_filename: str) -> None:
-        """Get files from module filename in the form username/module_folder/program_entry_file            
-           NOTE: Creates the full url and calls from_url(); assumes directory index listing is enabled on the webserver
-        """
-        fn_path = Path(module_filename)
-        url = f"{store_base_url}/users/{fn_path.parent}" # TODO: better handling of this path concat
+        if len(module.file) == 0: raise ProgramFileException("Error fetching module files; file cannot be empty")
+        path = Path(module.location if module.location != None else "").joinpath(module.file)
+        url = urljoin(store_base_url, str(path.parent))
         self.from_url(url)
         
     def __from_url(self, url: str, base_path: str) -> int:

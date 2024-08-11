@@ -1,4 +1,4 @@
-arena-py
+arena-py==0.10.0
 aiohttp
 async-timeout
 attrs

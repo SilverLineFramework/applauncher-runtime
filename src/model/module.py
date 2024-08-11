@@ -12,7 +12,7 @@ class Module(ModelBase, dict):
     """A dictionary to hold module properties"""
 
     # required attributes
-    _required_attrs = ['uuid', 'name', 'filename', 'filetype']
+    _required_attrs = ['uuid', 'name', 'file', 'filetype']
     
     # if True, only accepts declared attributes at init
     _strict = False
@@ -84,12 +84,20 @@ class Module(ModelBase, dict):
         self['parent'] = parent_rt
 
     @property
-    def filename(self):
-        return self.get('filename')
+    def location(self):
+        return self.get('location')
 
-    @filename.setter
-    def filename(self, fn):
-        self['filename'] = fn
+    @location.setter
+    def location(self, fn):
+        self['location'] = fn
+
+    @property
+    def file(self):
+        return self.get('file')
+
+    @file.setter
+    def file(self, fn):
+        self['file'] = fn
 
     @property
     def filetype(self):
@@ -182,6 +190,7 @@ class Module(ModelBase, dict):
         return self.__topics
     
     def keepalive_attrs(self, mod_stats):
+        if mod_stats == None: return None
         keepalive = dict(map(lambda k: (k, self.get(k)), self._ka_attrs))
         return { **keepalive, **mod_stats }
         

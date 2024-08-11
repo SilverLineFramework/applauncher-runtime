@@ -1,4 +1,4 @@
-FROM python:3-buster
+FROM python:3.12.5
 RUN apt-get update
 RUN pip install --upgrade pip
 RUN pip install certifi

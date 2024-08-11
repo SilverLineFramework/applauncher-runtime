@@ -15,12 +15,15 @@ from typing import Dict, Callable
 import json
 from logzero import logger
 from pathlib import Path
+import re
 
 from model import Module, ModuleStats
 from common import settings, ClassUtils
+from common import LauncherException
 from .launcher import ModuleLauncher
 from .docker_client import DockerClient
 from pubsub import PubsubStreamer, PubsubListner
+
 class PythonLauncher(ModuleLauncher):
     """
         Implements a launcher for python programs that starts the python programs in a container
@@ -67,14 +70,14 @@ class PythonLauncher(ModuleLauncher):
         auth_token_json = json.dumps({ 'username': settings.get('mqtt', {'username': 'nouser'}).get('username', ""), 'token': settings.get('mqtt', {'password': 'nouser'}).get('password', "")})
         self._file_repo.file_from_string_contents(auth_token_json, '.arena_mqtt_auth')
     
-        # get the files from repo url base on module name
-        self._file_repo.from_module_filename(settings.repository.url, self._module.filename)
+        # get the files from repo url base on module name (this creates a list of files to download)
+        self._file_repo.from_module_data(settings.repository.url, self._module)
         
-        # get the files into a tmp folder at files_info.path
+        # get the files into a tmp folder at files_info.path (this acctualy downloads the files)
         self._files_info = self._file_repo.get_files()
             
-        # create a Path object to get program file from last component of filename
-        fnp = Path(self._module.filename)
+        # create a Path object to get program file from last component of file
+        fnp = Path(self._module.file)
         
         # container cmd should accept the filename and list of arguments (which can be a list or a string) 
         cmd = [self._settings.cmd, fnp.name] + (self._module.args.split() if isinstance(self._module.args, str) else self._module.args)
@@ -93,7 +96,6 @@ class PythonLauncher(ModuleLauncher):
                 else:
                     logger.warn("Module env must be a dictionary or a list")
                     
-
         # add PROGRAM_OBJECT_ID
         mod_env.append(f"PROGRAM_OBJECT_ID={self._module.uuid}")
 
@@ -109,7 +111,7 @@ class PythonLauncher(ModuleLauncher):
         
         # add container name if force_container_name is true in launcher settings
         # contrary to module names, container names are unique so this is mostly for debug purposes (defaults to False)
-        if self._settings.docker.force_container_name: start_attached_params['name'] = self._module.name
+        if self._settings.docker.force_container_name: start_attached_params['name'] = re.sub('[^A-Za-z0-9]+', '', self._module.name) 
 
         # start container with stdin, stdout, stderr attached to a socket
         self._ctn_sock = self._docker_client.start_attached(**start_attached_params)
@@ -119,8 +121,12 @@ class PythonLauncher(ModuleLauncher):
             self._streamer = PubsubStreamer(self._pubsubc, self._ctn_sock, self._module.topics)
                      
     def get_stats(self) -> ModuleStats:
-        docker_stats = self._docker_client.get_stats()
-        
+        try:
+            docker_stats = self._docker_client.get_stats()
+        except LauncherException:
+            logger.warn(f"get_stats: Module not found ({self._module.uuid})")
+            return None
+
         # convert into ModuleStats
         return ModuleStats( cpu_usage_percent=docker_stats['cpu_percent'],
                            mem_usage=docker_stats['mem_usage'], 
