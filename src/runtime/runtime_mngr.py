@@ -5,7 +5,6 @@
    
    NOTE/TODO: We will register again everytime we lose mqtt connection (we are retrying to connect)
 """
-
 from logzero import logger
 import uuid
 import threading
@@ -20,6 +19,7 @@ from pubsub import PubsubHandler
 from launcher import LauncherContext
 from pubsub import PubsubListner, PubsubMessage
 from common.exception import MissingField, RuntimeException, LauncherException
+
 class RuntimeMngr(PubsubHandler):
     """Runtime Manager; handles topic messages"""
 
@@ -50,9 +50,9 @@ class RuntimeMngr(PubsubHandler):
         self.__ka_exit.set()
         
         # stop containers
-        with self.__modules_lock:
-            for (_, mod) in self.__modules.items():
-                mod.stop()
+        #with self.__modules_lock:
+        #    for (_, mod) in self.__modules.items():
+        #        mod.stop()
         
         # publish last will before exit
         if self.__lastwill_msg != None:
@@ -172,12 +172,17 @@ class RuntimeMngr(PubsubHandler):
     def control(self, msg):
         """Handle control messages."""
 
-        # runtime response -> is a message we sent, should be ignored
-        msg_type = msg.get('type')
-        if msg_type == MessageType.response:
-            return None
+        # ignore messages from ourselfs
+        try: 
+            msg_from = msg.payload['from']
+            if msg_from == self.__rt.uuid:
+                return None
+        except KeyError:
+            pass
 
         logger.debug("\n[Control] {}".format(msg.payload))
+
+        msg_type = msg.get('type')
 
         if msg_type == MessageType.request:
             action = msg.get('action')
@@ -189,6 +194,14 @@ class RuntimeMngr(PubsubHandler):
                 raise InvalidArgument('action', action)
         else:
             raise InvalidArgument('type', msg_type)
+
+    def module_exists(self, mod_uuid):
+        try:
+            self.__modules[mod_uuid]
+        except KeyError:
+            return False
+
+        return True
 
     def __module_exit(self, mod_uuid):
         logger.debug(f"module {mod_uuid} exited")
@@ -205,13 +218,12 @@ class RuntimeMngr(PubsubHandler):
                 try:
                     module = self.__modules.pop(mod_uuid).module
                 except KeyError as ke:
-                    raise RuntimeException("extraneous delete notification", "Module {} is not known".format(mod_uuid)) from ke
+                    raise RuntimeException("Extraneous delete notification", "Module {} is not known".format(mod_uuid)) from ke
                 else:         
-                    delete_msg = self.__rt.delete_module_msg(module.delete_attrs(self.__rt.uuid))
+                    delete_msg = self.__rt.delete_module_msg(module.delete_attrs())
         
-        if delete_msg != None:
-            self.__pubsub_client.message_publish(delete_msg)
-             
+        self.__pubsub_client.message_publish(delete_msg)
+        
     def __create_module(self, create_msg: PubsubMessage):
         """Handle create message."""
 
@@ -241,8 +253,7 @@ class RuntimeMngr(PubsubHandler):
     def __delete_module(self, delete_msg):
         """Handle delete message."""
 
-        mod = delete_msg.get('data')
-        mod_uuid = mod.get('uuid')
+        mod_uuid = delete_msg.get('data').get('uuid')
         if not mod_uuid: 
             raise MissingField("UIID field missing (trying to delete)")
         
@@ -250,7 +261,7 @@ class RuntimeMngr(PubsubHandler):
         
         with self.__modules_lock:
             try:
-                mod = self.__modules.pop(mod_uuid)
+                mod = self.__modules[mod_uuid]
             except KeyError as ke:
                 raise InvalidArgument("uuid", "Module {} does not exist (trying to delete)".format(mod_uuid)) from ke
 

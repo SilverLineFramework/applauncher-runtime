@@ -35,7 +35,7 @@ class Runtime(ModelBase, dict):
                 e.g. attr_replace = { "id": "uuid"} => means that "id" in kwargs will be replaced by "uuid"
             kwargs: arguments to be added as attributes
         """
-        self.__rt_msgs = SlMsgs()
+        self.__rt_msgs = SlMsgs(uuid)
         self.__topics = topics
         
         # replace attributes in arguments received

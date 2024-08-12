@@ -14,7 +14,7 @@ runtime:
   reg_fail_error: false
   max_nmodules: 100
   realm: realm
-  ka_interval_sec: 5
+  ka_interval_sec: 100
 
 # mqtt username and password in .secrets.yaml
 mqtt:

@@ -88,10 +88,8 @@ class PythonLauncher(ModuleLauncher):
             for evar in settings.launcher.env.split(' '):
                 if isinstance(mod_env, dict):
                     evar_splitted = evar.split('=')
-                    print(f"len {len(evar_splitted)}")
                     if len(evar_splitted) == 2: mod_env[evar_splitted[0]] = evar_splitted[1]
                 elif isinstance(mod_env, list):
-                    print(f"append {evar}")
                     mod_env.append(evar)
                 else:
                     logger.warn("Module env must be a dictionary or a list")

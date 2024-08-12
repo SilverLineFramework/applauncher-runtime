@@ -19,8 +19,8 @@ export $(grep -v '^#' .secrets.env | xargs)
 
 SCRIPT_DIR="${PWD}"
 
-docker buildx rm mybuilder 2>/dev/null
-docker buildx create --name mybuilder --use --bootstrap
+docker buildx rm slctnrbuilder 2>/dev/null
+docker buildx create --name slctnrbuilder --use --bootstrap
 
 echo $DOCKER_PASSWD | docker login --username $DOCKER_USER --password-stdin
 

@@ -69,18 +69,20 @@ class DockerClient(QoSParams):
         except docker.errors.DockerException as docker_exception:
             raise LauncherException(f"[DockerClient] Error starting docker (is the docker daemon running ?). {docker_exception}") from docker_exception
         
-    def wait_for_container(self, container, notify_call):
+    def wait_for_container(self, container, exit_notify_call):
         """Called within dedicated thread to wait for a container to exit"""
+   
+        self._container.wait();
 
+        """
         while True:
             time.sleep(1)
-            status = self._container.status
-            if not (status == DockerContainerStatus.running or status == DockerContainerStatus.created):
-                break
-
-        print("EXIT")
-        # container exited; perform notification call given
-        notify_call()
+            print("W", self._container.status)
+            if (self.is_running() == False):
+                pass
+                #break
+        """
+        exit_notify_call()
         
     def __del__(self) -> None:
         """ Cleanup """
@@ -221,19 +223,16 @@ class DockerClient(QoSParams):
             # container might be stopped already
             raise LauncherException(f"[DockerClient] Container not running!") from docker_err
             pass 
-        
 
-    def is_created_or_running(self):
-        """ return True if container is created or running; False otherwise
-            can receive id previously provided with start or a container reference
+    def is_running(self):
+        """ return True if container is running; False otherwise
         """
-        status = 'unknown'
         if not self._container:
             return False
         
         status = self._container.status
         
-        if status == DockerContainerStatus.running or status == DockerContainerStatus.created: 
+        if status == DockerContainerStatus.running: 
             return True
         
         return False

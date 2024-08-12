@@ -38,14 +38,16 @@ class SlMsgs:
         
         return d
         
-    def __init__(self, attr_mapping={}):
+    def __init__(self, from_id, attr_mapping={}):
         """Intanciate runtime messages. Translate between internal runtime data and messages
         
         Parameters
         ----------
+            from_id: identier to add as "from" in messages
             attr_mapping (dict): dictionary of attributes replaced in the runtime/module attributes
                 e.g. attr_mapping = { "id": "uuid"} => means that "id" in runtime/module attributes will be replaced by "uuid" in messages
         """
+        self.from_id = from_id
         self.attr_mapping = attr_mapping
         
     def error(self, data):
@@ -57,7 +59,7 @@ class SlMsgs:
         if convert:
             self.__convert_str_attrs(details)
         return PubsubMessage(topic, {
-            "object_id": str(src_uuid), "action": action, "type": MessageType.response,
+            "object_id": str(src_uuid), "action": action, "type": MessageType.response, "from": self.from_id,
             "data": {"result": result, "details": details}
         })
 
@@ -69,7 +71,7 @@ class SlMsgs:
             self.__convert_str_attrs(data)
 
         return PubsubMessage(topic, {
-            "object_id": str(uuid.uuid4()), "action": action, "type": MessageType.request,
+            "object_id": str(uuid.uuid4()), "action": action, "type": MessageType.request, "from": self.from_id,
             "data": data
         })
     
