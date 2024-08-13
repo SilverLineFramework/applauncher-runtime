@@ -39,7 +39,8 @@ class FileStoreBuilder(ProgramFilesBuilder):
            NOTE: Creates the full url and calls from_url(); assumes directory index listing is enabled on the webserver
         """
         if len(module.file) == 0: raise ProgramFileException("Error fetching module files; file cannot be empty")
-        path = Path(module.location if module.location != None else "").joinpath(module.file)
+        if len(module.location) == 0: raise ProgramFileException("Error fetching module files; location cannot be empty")
+        path = Path(module.location).joinpath(module.file)
         url = urljoin(store_base_url, str(path.parent))
         self.from_url(url)
         

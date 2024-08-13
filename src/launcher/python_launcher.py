@@ -103,6 +103,7 @@ class PythonLauncher(ModuleLauncher):
         start_attached_params = { 
                         'command': cmd,
                         'id': self._module.uuid,
+                        'name': self._module.uuid,
                         'environment': mod_env,
                         'workdir_mount_source': str(self._files_info.path),
                         'exit_notify': exit_notify }

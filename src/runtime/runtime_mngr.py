@@ -211,18 +211,19 @@ class RuntimeMngr(PubsubHandler):
         try:
             delete_msg = self.__pending_delete_msgs.pop(mod_uuid)
         except KeyError:
-            # if this is not a pending delete request, send delete notification
-            module = None
-            # remove module from our module list; send a delete notification    
-            with self.__modules_lock:    
-                try:
-                    module = self.__modules.pop(mod_uuid).module
-                except KeyError as ke:
-                    raise RuntimeException("Extraneous delete notification", "Module {} is not known".format(mod_uuid)) from ke
-                else:         
-                    delete_msg = self.__rt.delete_module_msg(module.delete_attrs())
+            pass
+
+        module = None
+        # remove module from our module list
+        with self.__modules_lock:    
+            try:
+                module = self.__modules.pop(mod_uuid).module
+            except KeyError as ke:
+                raise RuntimeException("Error deleting", "Module {} is not known".format(mod_uuid)) from ke
+            else:         
+                delete_msg = self.__rt.delete_module_msg(module.delete_attrs())
         
-        self.__pubsub_client.message_publish(delete_msg)
+        if delete_msg: self.__pubsub_client.message_publish(delete_msg)
         
     def __create_module(self, create_msg: PubsubMessage):
         """Handle create message."""
@@ -230,8 +231,11 @@ class RuntimeMngr(PubsubHandler):
         mod = create_msg.get('data')
 
         # only care about messages with us as parent
-        if mod['parent'] != self.__rt.uuid and mod['parent'] != self.__rt.name:
-            raise InvalidArgument("parent", "Parent does not match this runtime")
+        try:
+            if mod['parent'] != self.__rt.uuid and mod['parent'] != self.__rt.name:
+                raise InvalidArgument("parent", "Parent does not match this runtime")
+        except KeyError:
+            raise InvalidArgument("parent", "Parent is required")
 
         mod_uuid = mod.get('uuid')
         if mod_uuid: 
@@ -261,13 +265,17 @@ class RuntimeMngr(PubsubHandler):
         
         with self.__modules_lock:
             try:
-                mod = self.__modules[mod_uuid]
+                mod_mngr = self.__modules[mod_uuid]
             except KeyError as ke:
                 raise InvalidArgument("uuid", "Module {} does not exist (trying to delete)".format(mod_uuid)) from ke
 
         # NOTE: a delete module will be sent by module exit handler
-        mod.stop()
-        
+        try:
+            mod_mngr.stop()
+        except LauncherException:
+            logger.warn("Module not running.")            
+            self.__module_exit(mod_mngr.module.uuid)
+
         # save pending delete message to be sent later;
         # will be sent when a module exit notification is received
         # TODO: add some timeout mechanism
@@ -294,7 +302,5 @@ class MngrModule():
         return self.module_launcher.start_module(on_module_exit_call)
     
     def stop(self):
-        try:
-            self.module_launcher.stop_module()
-        except LauncherException:
-            logger.warn("Module not running.")
+        self.module_launcher.stop_module()
+

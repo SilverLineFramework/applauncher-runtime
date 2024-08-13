@@ -132,7 +132,6 @@ class DockerClient(QoSParams):
         # run container
         self._container = self._client.containers.run(**run_options) 
 
-
         # attach socket
         sock = self._container.attach_socket(params=DockerClient._CTN_SOCK_OPTS)
 
