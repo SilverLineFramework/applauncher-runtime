@@ -79,7 +79,10 @@ class PubsubStreamer:
         else: payload_bytes = os.read(self._sock.fileno(), 4096)
         while payload_bytes:
             if self._encode_decode:
-                payload_bytes = payload_bytes.decode()
+                try:
+                    payload_bytes = payload_bytes.decode()
+                except UnicodeDecodeError:
+                    payload_bytes = f"Error decoding {len(payload_bytes)} bytes." 
             out_topic = self._topics.get(Streams.stdout)
             if self._multiplexed:
                 # publish to stdout or stderr topic according to first byte in the header

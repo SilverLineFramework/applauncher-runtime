@@ -72,16 +72,11 @@ class DockerClient(QoSParams):
     def wait_for_container(self, container, exit_notify_call):
         """Called within dedicated thread to wait for a container to exit"""
    
-        self._container.wait();
+        try:
+            self._container.wait();
+        except docker.errors.NotFound:
+            logger.warn("Container exited before we could wait on it.")
 
-        """
-        while True:
-            time.sleep(1)
-            print("W", self._container.status)
-            if (self.is_running() == False):
-                pass
-                #break
-        """
         exit_notify_call()
         
     def __del__(self) -> None:

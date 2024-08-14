@@ -50,9 +50,9 @@ class RuntimeMngr(PubsubHandler):
         self.__ka_exit.set()
         
         # stop containers
-        #with self.__modules_lock:
-        #    for (_, mod) in self.__modules.items():
-        #        mod.stop()
+        with self.__modules_lock:
+            for (_, mod) in self.__modules.items():
+                mod.stop()
         
         # publish last will before exit
         if self.__lastwill_msg != None:
