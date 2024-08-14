@@ -1,6 +1,4 @@
 FROM python:3.12.5
-RUN apt-get update
-RUN apt-get install -y unzip wget mosquitto-clients
 RUN pip install --upgrade pip
 WORKDIR /tmp
 # intall arena-py from repo head 

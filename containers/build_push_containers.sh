@@ -11,16 +11,18 @@ do
 done
 PUSH_IMG=${push:-"--push"} # by default will push image
 
-# stop on first error
-set -e
-
 # load secrets
 export $(grep -v '^#' .secrets.env | xargs)
 
 SCRIPT_DIR="${PWD}"
 
 docker buildx rm slctnrbuilder 2>/dev/null
+
+# stop on first error
+set -e
+
 docker buildx create --name slctnrbuilder --use --bootstrap
+
 
 echo $DOCKER_PASSWD | docker login --username $DOCKER_USER --password-stdin
 
