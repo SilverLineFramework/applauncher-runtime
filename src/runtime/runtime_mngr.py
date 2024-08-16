@@ -57,7 +57,8 @@ class RuntimeMngr(PubsubHandler):
         # publish last will before exit
         if self.__lastwill_msg != None:
             self.__pubsub_client.message_publish(self.__lastwill_msg)
-            time.sleep(.5) # need time to publish
+            
+        time.sleep(1) # need time to publish
         
         self.__exited=True;
 
@@ -220,10 +221,9 @@ class RuntimeMngr(PubsubHandler):
                 module = self.__modules.pop(mod_uuid).module
             except KeyError as ke:
                 raise RuntimeException("Error deleting", "Module {} is not known".format(mod_uuid)) from ke
-            else:         
-                delete_msg = self.__rt.delete_module_msg(module.delete_attrs())
-        
-        if delete_msg: self.__pubsub_client.message_publish(delete_msg)
+
+        delete_msg = self.__rt.delete_module_msg(module.delete_attrs())
+        self.__pubsub_client.message_publish(delete_msg)
         
     def __create_module(self, create_msg: PubsubMessage):
         """Handle create message."""
@@ -249,7 +249,8 @@ class RuntimeMngr(PubsubHandler):
 
         with self.__modules_lock:
             self.__modules[module.uuid] = MngrModule(module, self.__pubsub_client)
-            self.__modules[module.uuid].start(lambda: self.__module_exit(module.uuid))
+        
+        self.__modules[module.uuid].start(lambda: self.__module_exit(module.uuid))
 
         # confirm create request
         return self.__rt.confirm_module_msg(create_msg)

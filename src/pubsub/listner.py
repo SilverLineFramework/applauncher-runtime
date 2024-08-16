@@ -175,7 +175,7 @@ class MQTTListner(paho.Client, PubsubListner):
         """
 
         payload = json.dumps(pubsub_msg.payload)
-        logger.debug(f"Publish msg: {str(pubsub_msg.topic)}: {payload}")
+        logger.debug(f"Publish msg: {pubsub_msg.topic}: {payload}")
         self.publish(pubsub_msg.topic, payload)
 
     def __decode_msg(self, msg: PubsubMessage, decode_json: bool) -> PubsubMessage:

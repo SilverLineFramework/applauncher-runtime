@@ -36,7 +36,7 @@ def main(args):
     rtmngr = RuntimeMngr()
 
     # pass runtime mngr as pubsub handler to mqtt client
-    mqttc = MQTTListner(rtmngr, **settings.get('mqtt'))
+    mqttc = MQTTListner(rtmngr, **settings.get('mqtt'), error_topic=f"{settings.get('topics.io')}/{settings.get('runtime.uuid')}/stderr")
 
     # some time to init (just so following message does not appear in the middle of init log)
     time.sleep(2)

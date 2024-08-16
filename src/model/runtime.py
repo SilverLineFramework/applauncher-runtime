@@ -170,12 +170,13 @@ class Runtime(ModelBase, dict):
             details = src_msg.get('data'))
         
     def delete_module_msg(self, mod_data) -> PubsubMessage:
-        return self.__rt_msgs.req(self.__topics.get('modules'), Action.delete, mod_data)
+        return self.__rt_msgs.req(
+            self.__topics.modules, Action.delete, mod_data)
 
     def keepalive_msg(self, children) -> PubsubMessage:
         keepalive = dict(map(lambda k: (k, self.get(k)), self.__ka_attrs))
         # add children
         keepalive['children'] = children
-        return self.__rt_msgs.req(self.__topics.get('keepalive'), Action.update, keepalive)
+        return self.__rt_msgs.req(self.__topics.keepalive, Action.update, keepalive)
         
         pass
