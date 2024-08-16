@@ -36,5 +36,7 @@ settings = Dynaconf(
         # username and password are an empty string by default
         Validator("mqtt.password", default=""),
         Validator("mqtt.username", default=""),
+
+        Validator("docker.force_container_name", default=False),
     ],
 )
