@@ -20,10 +20,10 @@ class Runtime(ModelBase, dict):
     _strict = True
 
     # attributes we send in register/unregister requests
-    __reg_attrs = ['uuid', 'type', 'name', 'runtime_type', 'max_nmodules', 'apis']
+    __reg_attrs = ['uuid', 'type', 'name', 'runtime_type', 'max_nmodules', 'apis', 'is_orchestration_runtime', 'tags']
     
     # attributes we send in keepalives
-    __ka_attrs = ['uuid', 'type', 'name', 'runtime_type', 'max_nmodules', 'apis']
+    __ka_attrs = ['uuid', 'type', 'name', 'runtime_type', 'max_nmodules', 'apis', 'is_orchestration_runtime', 'tags']
     
     def __init__(self, topics: RuntimeTopics, uuid: str=str(uuid.uuid4()), attr_replace: dict=None, **kwargs):
         """Intanciate a Runtime  
@@ -141,6 +141,22 @@ class Runtime(ModelBase, dict):
     @apis.setter
     def apis(self, rt_apis):
         self['apis'] = rt_apis
+
+    @property
+    def is_orchestration_runtime(self):
+        return self['is_orchestration_runtime']
+
+    @is_orchestration_runtime.setter
+    def is_orchestration_runtime(self, rt_is_orchestration_runtime):
+        self['is_orchestration_runtime'] = rt_is_orchestration_runtime
+
+    @property
+    def tags(self):
+        return self['tags']
+
+    @tags.setter
+    def tags(self, rt_tags):
+        self['tags'] = rt_tags
 
     @property
     def topics(self):

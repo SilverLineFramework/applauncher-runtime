@@ -8,7 +8,7 @@ dynaconf_merge: true # merge with config in settings.yaml (required)
 launcher:
   # space-separated list e.g.: python:python3 wasm:wasi_preview_1;
   # union of apis supported by all configured launchers below
-  apis: python:python3 wasm:wasi_preview_1
+  apis: python:python3
   PY: # launcher key
     class: launcher.python_launcher.PythonLauncher # instanciate a Launcher-derived class from: module.submodule.Class
     # install requirements; force stdout/stderr to be unbuffered; string must include {py_filename} to be started
@@ -20,7 +20,7 @@ launcher:
       workdir: /usr/src/app
       monitor_interval_secs: 0.5
       force_container_name: False  # force container name to match module name
-      
+
       run_opts: # run options
         auto_remove: True
         stdin_open: True
