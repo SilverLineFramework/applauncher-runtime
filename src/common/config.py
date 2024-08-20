@@ -17,6 +17,8 @@ settings = Dynaconf(
         Validator("runtime.reg_fail_error", default=True),
         Validator("runtime.max_nmodules", default=100),
         Validator("runtime.realm", default="realm"),
+        Validator("runtime.is_orchestration_runtime", default=False),
+        Validator("runtime.tags", default=[]),
 
         # gen runtime uuid default value (if empty)
         Validator("runtime.uuid", default=str(uuid.uuid4())),

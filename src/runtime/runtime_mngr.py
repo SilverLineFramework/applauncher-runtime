@@ -128,12 +128,13 @@ class RuntimeMngr(PubsubHandler):
         reg_flag = False
         while True:
             if reg_count > 0: 
+                logger.info("Runtime attempting to register...");
+                self.__pubsub_client.message_publish(reg_msg)
+                reg_flag = self.wait_reg(timeout_secs)
+                if reg_flag == True: break # event is set; registration response received
                 reg_count = reg_count - 1
                 if reg_count == 0: break
-            logger.info("Runtime attempting to register...");
-            self.__pubsub_client.message_publish(reg_msg)
-            reg_flag = self.wait_reg(timeout_secs)
-            if reg_flag == True: break # event is set; registration response received
+
         
         if not reg_flag:
             if reg_fail_error: raise RuntimeException("runtime registration failed.", "Could not register runtime after {} attempts.".format(reg_attempts))
