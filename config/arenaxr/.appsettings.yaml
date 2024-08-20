@@ -53,7 +53,7 @@ runtime:
 # topics used by runtime
 # realm and uuid (defined in runtime section - in settings.yaml) are replaced by values
 topics:
-  runtimes: "@format {this.runtime.realm}/proc/reg" # OLD (replaced by runtimes); to remove
+  runtimes: "@format {this.runtime.realm}/proc/reg/{this.runtime.uuid}" # OLD (replaced by runtimes); to remove
   modules_root: "@format {this.runtime.realm}/proc/control" # to send module delete msgs; to remove
   modules: "@format {this.runtime.realm}/proc/control/{this.runtime.uuid}" # OLD (replaced by modules); to remove
   #runtimes: "@format {this.runtime.realm}/proc/runtimes" # registration topic
