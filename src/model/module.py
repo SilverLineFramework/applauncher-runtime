@@ -18,7 +18,7 @@ class Module(ModelBase, dict):
     _strict = False
 
     # attributes we return for keepalive
-    _ka_attrs = ['uuid', 'name']
+    _ka_attrs = ['uuid', 'name', 'file', 'filetype', 'parent']
 
     # attributes we return for delete requests
     _delete_attrs = ['type', 'uuid', 'name', 'parent']

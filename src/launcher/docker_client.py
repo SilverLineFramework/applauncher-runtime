@@ -12,6 +12,7 @@ import uuid
 import subprocess
 import json
 import time
+import requests
 
 from common import LauncherException
 from .launcher import QoSParams
@@ -180,7 +181,8 @@ class DockerClient(QoSParams):
             ctn_stats = self._container.stats(decode=False, stream=False)
         except docker.errors.NotFound:
             raise LauncherException(f"[DockerClient] Container not running!")
-
+        except requests.exceptions.JSONDecodeError:
+            raise LauncherException(f"[DockerClient] Decode error!")
         #cpu_percent, self._stats['previous_cpu'], self._stats['previous_system'] = self.__get_cpu_stats(ctn_stats, self._stats['previous_cpu'], self._stats['previous_system'])
         net_stats = self.__get_network_stats(ctn_stats)
 
@@ -188,7 +190,7 @@ class DockerClient(QoSParams):
         popen_result = subprocess.Popen(stats_cmd, shell=True, stdout=subprocess.PIPE).stdout.read()
         try: 
             dstats = json.loads(popen_result.decode())
-        except JSONDecodeError:
+        except json.JSONDecodeError:
             return { **ctn_stats, 'cpu_percent': None, 'mem_usage': None , **net_stats }    
                 
         mem_usage_bytes = 0.0

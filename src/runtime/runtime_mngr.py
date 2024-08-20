@@ -114,11 +114,14 @@ class RuntimeMngr(PubsubHandler):
             self.__ka_exit.clear()
             if exit_flag: break # event is set; exit
             
-            with self.__modules_lock:
-                children = [mngr_mod.module.keepalive_attrs(mngr_mod.module_launcher.get_stats()) for _, mngr_mod in self.__modules.items()]
-            keepalive_msg = self.__rt.keepalive_msg(children)
-            logger.debug("Sending keepalive.")
-            self.__pubsub_client.message_publish(keepalive_msg)
+            try: 
+                with self.__modules_lock:
+                    children = [mngr_mod.module.keepalive_attrs(mngr_mod.module_launcher.get_stats()) for _, mngr_mod in self.__modules.items()]
+                keepalive_msg = self.__rt.keepalive_msg(children)
+                logger.debug("Sending keepalive.")
+                self.__pubsub_client.message_publish(keepalive_msg) 
+            except Exception as err: # catch all so thread does not stop
+                logger.error(f"KeepAplive: {err}")
             
     def __register_runtime_send(self, reg_msg, timeout_secs, reg_attempts, reg_fail_error):
         """Register thread; sends register messages every timeout interval

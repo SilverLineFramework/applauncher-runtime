@@ -122,8 +122,8 @@ class PythonLauncher(ModuleLauncher):
     def get_stats(self) -> ModuleStats:
         try:
             docker_stats = self._docker_client.get_stats()
-        except LauncherException:
-            logger.warn(f"get_stats: Module not found ({self._module.uuid})")
+        except LauncherException as err:
+            logger.warn(f"get_stats ({self._module.uuid}): {err}")
             return None
 
         # convert into ModuleStats

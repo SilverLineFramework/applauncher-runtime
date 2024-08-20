@@ -181,8 +181,11 @@ class MQTTListner(paho.Client, PubsubListner):
     def __decode_msg(self, msg: PubsubMessage, decode_json: bool) -> PubsubMessage:
         """Attempt to decode JSON MQTT message."""
         payload = str(msg.payload.decode("utf-8", "ignore"))
-        if payload[0] == "'":
-            payload = payload[1:len(payload) - 1]
+        try:
+            if payload[0] == "'":
+                payload = payload[1:len(payload) - 1]
+        except IndexError:
+            pass
         if decode_json:
             payload = json.loads(payload)
         return PubsubMessage(msg.topic, payload)
