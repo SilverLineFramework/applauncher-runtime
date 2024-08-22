@@ -5,7 +5,7 @@ screen -S slruntime1 -X stuff 'Q'`echo -ne '\015'`
 attempt=1
 while screen -list | grep -q slruntime1
 do
-	if [ attempt -eq 1 ]; then
+	if [ $attempt -eq 1 ]; then
 		echo "Waiting for runtime to exit gracefully"
 	fi
 	if [ $attempt -gt 20 ]; then
