@@ -15,6 +15,7 @@ runtime:
   max_nmodules: 100
   realm: realm
   ka_interval_sec: 1
+  is_orchestration_runtime: false
   tags: ["arena-py", "containerized-modules"]   
 
 # mqtt username and password in .secrets.yaml

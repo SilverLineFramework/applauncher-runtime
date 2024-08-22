@@ -111,7 +111,6 @@ class RuntimeMngr(PubsubHandler):
         
         while True:
             exit_flag = self.__ka_exit.wait(ka_interval_secs)
-            self.__ka_exit.clear()
             if exit_flag: break # event is set; exit
             
             try: 
