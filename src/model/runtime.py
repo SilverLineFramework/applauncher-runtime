@@ -170,24 +170,13 @@ class Runtime(ModelBase, dict):
         """
         # return a view of the object for a register/unregister request
         reg_req = dict(map(lambda k: (k, self.get(k)), self.__reg_attrs))
-        return self.__rt_msgs.req(self.__topics.get('runtimes'), action, reg_req)
+        return self.__rt_msgs.req(self.__topics.runtimes, action, reg_req)
             
     def create_runtime_msg(self) -> PubsubMessage:
         return self._create_delete_runtime_msg(Action.create)
 
     def delete_runtime_msg(self) -> PubsubMessage:
         return self._create_delete_runtime_msg(Action.delete)
-
-    def confirm_module_msg(self, src_msg) -> PubsubMessage:
-        return self.__rt_msgs.resp(
-            self.__topics.modules,
-            src_uuid = src_msg.get('object_id'),
-            action = src_msg.get('action'),
-            details = src_msg.get('data'))
-        
-    def delete_module_msg(self, mod_data) -> PubsubMessage:
-        return self.__rt_msgs.req(
-            self.__topics.modules, Action.delete, mod_data)
 
     def keepalive_msg(self, children) -> PubsubMessage:
         keepalive = dict(map(lambda k: (k, self.get(k)), self.__ka_attrs))

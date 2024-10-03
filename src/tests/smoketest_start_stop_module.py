@@ -17,12 +17,9 @@ class TestRuntimeMngr(unittest.TestCase):
         self.mod_name = 'pytest47351aeee0bc' # note: must be a normalized name (like python packages)
         # instanciate a topics object to create repeatable topics for testing 
         
-        self.topics = RuntimeTopics(
-                                    runtimes="realm/proc/runtimes",
-                                    modules=f"realm/proc/modules/{self.rt_uuid}", 
-                                    modules_root="realm/proc/modules", 
-                                    io=f"realm/proc/io/{self.rt_uuid}",
-                                    keepalive=f"realm/proc/keepalive/{self.rt_uuid}")
+        self.topics = RuntimeTopics(runtimes="realm/g/public/p/{self.rt_uuid}",
+                                    modules=f"realm/s/public/default/p/+",
+                                    mio=f"realm/s/public/default/p/{self.mod_uuid}")
     
         self.module_create_msg = PubsubMessage(self.topics.modules, 
                                                 {
@@ -34,6 +31,7 @@ class TestRuntimeMngr(unittest.TestCase):
                                                         "uuid": self.mod_uuid,
                                                         "name": self.mod_name,
                                                         "parent": self.rt_uuid,
+                                                        "scene": "public/default",
                                                         "file": "arena/py/pytestenv/pytest.py",
                                                         "filetype": "PY",
                                                         "apis": ["wasm", "wasi"],

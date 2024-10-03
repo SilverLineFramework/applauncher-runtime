@@ -4,9 +4,16 @@ Module model; Store information about wasm modules running
 """
 
 from uuid import uuid4
+import re 
 
 from .model_base import ModelBase
 from .runtime_types import *
+
+DFT_NAMESPACE='public'
+DFT_SCENE='default'
+
+KEY_NS_ENV='NAMESPACE'
+KEY_SCENE_ENV='SCENE'
 
 class Module(ModelBase, dict):
     """A dictionary to hold module properties"""
@@ -23,25 +30,40 @@ class Module(ModelBase, dict):
     # attributes we return for delete requests
     _delete_attrs = ['type', 'uuid', 'name', 'parent']
 
-    def __init__(self, io_base_topic='realm/proc/io/rt_uuid', uuid=str(uuid4()), attr_replace=None, **kwargs):
+    def __init__(self, mio_topic=None, uuid=str(uuid4()), attr_replace=None, **kwargs):
         """Intanciate a Module  
         Parameters
         ----------
-            io_base_topic: Base topic where modules publish io. e.g.: realm/proc/io/rt_uuid
+            mio_topic: Base topic where modules publish/subscribe their stdout, stderr, stdin streams
+                 should have '{namespaced_scene}' to be replaced
             uuid: runtime uuid        
             attr_replace (dict): dictionary of attributes to replace in kwargs
                 e.g. attr_replace = { "id": "uuid"} => means that "id" in kwargs will be replaced by "uuid"
             kwargs: arguments to be added as attributes
         """        
-        self.__topics =  {
-            'stdout': f"{io_base_topic}/{uuid}/stdout",
-            'stdin': f"{io_base_topic}/{uuid}/stdin",
-            'stderr': f"{io_base_topic}/{uuid}/stderr",
-        }
+
+        # scene attribute should be a namespaced scene
+        namespaced_scene = self.__namespaced_scene(
+            namespaced_scene=kwargs.get('scene'), 
+            kwargs.get('env'))
 
         kwargs['uuid'] = uuid
         kwargs['type'] = MessageType.mod
-                
+        kwargs['scene'] = namespaced_scene
+        
+        # define module topics
+        if mio_topic=None:
+            raise InvalidArgument("mio_topic", "Module IO topic is required")
+
+        # we need to replace the namespaced_scene
+        mio_topic = mio_topic.format(namespaced_scene=namespaced_scene)
+        self.__topics =  {
+            'mio': mio_topic,
+            'stdout': f"{mio_topic}/stdout",
+            'stdin': f"{mio_topic}/stdin",
+            'stderr': f"{mio_topic}/stderr",
+        }
+
         # replace attributes in arguments received
         if attr_replace: 
             self._replace_attrs(kwargs, attr_replace)
@@ -50,6 +72,36 @@ class Module(ModelBase, dict):
         self._check_attrs(Module, kwargs)
 
         dict.__init__(self, kwargs)
+
+    def __namespaced_scene(namespaced_scene=None, env=None):
+         """
+            Attempts to define a namespaced scene from module request attributes:
+               - 'scene': if exists and is in the form 'namespace/scene'; if not in valid format, returns default_ns/scene
+               - 'env': if 'scene' is not present, searchs for namespace and scene in env parameters
+         """
+        if namespaced_scene:
+            valid_scene = re.search("[a-z0-9_-]{3,}\/[a-z0-9_-]{3,}", namespaced_scene, re.IGNORECASE)
+            namespaced_scene = f"{DFT_NAMESPACE}/{namespaced_scene}"
+            return namespaced_scene
+
+        if namespaced_scene == None or valid_scene==None:
+            scene = DFT_SCENE
+            namespace = DFT_NAMESPACE
+            if env != None:
+                if isinstance(env, dict):
+                    # {'NAMESPACE': 'anamespace', 'SCENE': 'ascene'}
+                    scene = env.get(KEY_SCENE_ENV, scene)
+                    namespace = env.get(KEY_NS_ENV, namespace)
+                elif isinstance(env, list):
+                    # ['NAMESPACE=anamespace', 'SCENE=ascene']
+                    for evar_str in env:
+                        evar_splitted = evar_str.split('=')
+                        if len(evar_splitted) == 2: 
+                            if (evar_splitted[0] == KEY_SCENE_ENV): scene = evar_splitted[1]
+                            if (evar_splitted[0] == KEY_NS_ENV): namespace = evar_splitted[1]
+            namespaced_scene = f"{namespace}/{scene}"
+
+        return namespaced_scene
 
     @property
     def uuid(self):
@@ -188,6 +240,10 @@ class Module(ModelBase, dict):
     @property
     def topics(self):
         return self.__topics
+
+    @property
+    def mio(self):
+        return self.__topics['mio']
     
     def keepalive_attrs(self, mod_stats):
         if mod_stats == None: return None
@@ -197,3 +253,15 @@ class Module(ModelBase, dict):
     def delete_attrs(self):
         delete = dict(map(lambda k: (k, self.get(k)), self._delete_attrs))
         return { **delete }
+
+    def confirm_msg(self, msg_to_confirm) -> PubsubMessage:
+        return self.__rt_msgs.resp(
+            self.__topics['mio'],
+            msg_to_confirm.get('object_id'),
+            action=msg_to_confirm.get('action'),
+            details=msg_to_confirm.get('data'))
+        
+    def delete_msg(self) -> PubsubMessage:
+        return self.__rt_msgs.req(self.__topics['mio'], 
+                Action.delete, 
+                self.delete_attrs())        

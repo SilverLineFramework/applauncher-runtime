@@ -8,7 +8,6 @@ loglevel: DEBUG
 # runtime settings
 runtime:
   name: arena-rt1
-  namespace: public  
   #uuid: # leave blank to generate a new uuid; or set a fixed uuid value
   uuid: cb65196b-0537-4364-939a-87d004babd4c # this would make the runtime have a fixed uuuid
   reg_attempts: 1 # -1 = skip registration; 0 = infinite
@@ -18,11 +17,11 @@ runtime:
   realm: realm
   ka_interval_sec: 1
   is_orchestration_runtime: false
-  tags: ["arena-py", "containerized-modules"]   
+  tags: ["arena-py", "containerized-modules"] 
 
 # mqtt username and password in .secrets.yaml
 mqtt:
-  host: arena-dev1.conix.io
+  host: mqtt.arenaxr.org
   port: 8883
   ssl: true
 
@@ -34,7 +33,7 @@ mqtt:
 # where/how we keep program files;
 # these might change, depending on class defined in .appsettings.yaml
 repository:
-  url: https://arena-dev1.conix.io/store/users/
+  url: https://arenaxr.org/store/users/
 
 # launcher config; what starts modules
 launcher:

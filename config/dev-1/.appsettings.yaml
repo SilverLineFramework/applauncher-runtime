@@ -49,16 +49,19 @@ runtime:
   runtime_type: containerized-modules
   apis: "@format {this.launcher.apis}" #apis from launcher config
 
-# topics used by runtime
-# realm and uuid (defined in runtime section - in settings.yaml) are replaced by values
+# Note: 
+# - variables inside single brackets ({}) will be replaced by settings values 
+# - variables inside double brackets ({{}}) are only known at runtime. 
+#   they will be transformed to single brackets and left undecoded 
+#   these can be decoded with <str>.format(<var1>=<val1>, <var2>=<val2>)
 topics:
-  runtimes: "@format {this.runtime.realm}/proc/reg/{this.runtime.uuid}" # OLD (replaced by runtimes); to remove
-  modules_root: "@format {this.runtime.realm}/proc/control" # to send module delete msgs; to remove
-  modules: "@format {this.runtime.realm}/proc/control/{this.runtime.uuid}" # OLD (replaced by modules); to remove
-  #runtimes: "@format {this.runtime.realm}/proc/runtimes" # registration topic
-  #modules: "@format {this.runtime.realm}/proc/modules/{this.runtime.uuid}" # module control
-  io: "@format {this.runtime.realm}/proc/io" # runtime error messages and root for modules stdin, stdout, stderr
-  keepalive: "@format {this.runtime.realm}/proc/keepalive/{this.runtime.uuid}" # runtime keepalive messages
+  # runtime registration, keepalives, errors
+  runtimes: "@format {this.runtime.realm}/g/{this.runtime.namespace}/p/{this.runtime.uuid}"
+  # module requests (subscribe only)
+  modules: "@format {this.runtime.realm}/s/+/+/p/+"
+  # module io: stdin/out/err (error includes runtime-related module errors)
+  # namespaced_scene and module_uuid are replaced at runtime
+  mio: "@format {this.runtime.realm}/s/{{namespaced_scene}}/p/{{module_uuid}}"
 
 # where/how we keep program files
 repository:

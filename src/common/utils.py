@@ -1,6 +1,6 @@
 """
 *TL;DR
-Some utils: intantiate classes from settings, singleton metaclass
+Some utils: instantiate classes from settings, singleton metaclass
 """
 import importlib
 

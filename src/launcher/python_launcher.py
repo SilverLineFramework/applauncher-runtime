@@ -85,17 +85,11 @@ class PythonLauncher(ModuleLauncher):
         # add launcher env entries
         mod_env = self._module.env
         if settings.launcher.env:
-            for evar in settings.launcher.env.split(' '):
-                if isinstance(mod_env, dict):
-                    evar_splitted = evar.split('=')
-                    if len(evar_splitted) == 2: mod_env[evar_splitted[0]] = evar_splitted[1]
-                elif isinstance(mod_env, list):
-                    mod_env.append(evar)
-                else:
-                    logger.warn("Module env must be a dictionary or a list")
+            for evar in settings.launcher.env.split(' '): 
+                mod_env = self.__add_env_var(mod_env, evar)
                     
         # add PROGRAM_OBJECT_ID
-        mod_env.append(f"PROGRAM_OBJECT_ID={self._module.uuid}")
+        mod_env = self.__add_env_var(mod_env, f"PROGRAM_OBJECT_ID={self._module.uuid}")
 
         logger.debug(f"Starting module {self._module.name}. cmd: {cmd}, env: {mod_env}")
     
@@ -119,6 +113,16 @@ class PythonLauncher(ModuleLauncher):
         if self._pubsubc:
             self._streamer = PubsubStreamer(self._pubsubc, self._ctn_sock, self._module.topics)
                      
+    def __add_env_var(mod_env: Iterable, evar_str: str):
+        if isinstance(mod_env, dict):
+            evar_splitted = evar_str.split('=')
+            if len(evar_splitted) == 2: mod_env[evar_splitted[0]] = evar_splitted[1]
+        elif isinstance(mod_env, list):
+            mod_env.append(evar_str)
+        else:
+            logger.warn(f"Module env must be a dictionary or a list; Env '{evar_str}' ignored")
+        return mod_env
+           
     def get_stats(self) -> ModuleStats:
         try:
             docker_stats = self._docker_client.get_stats()
