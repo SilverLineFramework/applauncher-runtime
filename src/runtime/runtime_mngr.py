@@ -23,10 +23,9 @@ from common.exception import MissingField, RuntimeException, LauncherException
 class RuntimeMngr(PubsubHandler):
     """Runtime Manager; handles topic messages"""
 
-    def __init__(self, runtime_topics: RuntimeTopics=RuntimeTopics(**settings.get('topics')), **kwargs):
+    def __init__(self, **kwargs):
         self.__modules: Dict[str, MngrModule] = {} # dictionary of MngrModules by module uuid
         self.__modules_lock = threading.Lock()
-        self.__runtime_topics = runtime_topics
         self.__lastwill_msg = None
         self.__conn_event = threading.Event()
         self.__reg_event = threading.Event()
@@ -34,9 +33,7 @@ class RuntimeMngr(PubsubHandler):
         self.__pending_delete_msgs: Dict[str, PubsubMessage] = {} # dictionary messages waiting module exit notification
         self.__exited=False;
 
-        # arguments passed in constructor will override settings
-        runtime_args = {**settings.get('runtime'), **kwargs} 
-        self.__rt = Runtime(topics=runtime_topics, **runtime_args)
+        self.__rt = Runtime(topics=kwargs.get('topics', settings.get('topics')), **kwargs.get('runtime', settings.get('runtime')))
 
         # register exit handler to send delete runtime request
         atexit.register(self.__exit_handler)
@@ -80,7 +77,7 @@ class RuntimeMngr(PubsubHandler):
         # subscribe to runtimes to receive registration confirmation
         self.__pubsub_client.message_handler_add(self.__rt.topics.runtimes, self.reg)
 
-        reg_attempts = settings.get('runtime.reg_attempts')
+        reg_attempts = self.__rt.reg_attempts
         if reg_attempts < 0:
             # skip registration
             self.__register_runtime_done()
@@ -89,9 +86,9 @@ class RuntimeMngr(PubsubHandler):
             self.__reg_thread = threading.Thread(target=self.__register_runtime_send,
                 args=(
                     self.__rt.create_runtime_msg(),
-                    settings.get('runtime.reg_timeout_seconds'),
-                    settings.get('runtime.reg_attempts'),
-                    settings.get('runtime.reg_fail_error')))
+                    self.__rt.reg_timeout_seconds,
+                    self.__rt.reg_attempts,
+                    self.__rt.reg_fail_error))
             self.__reg_thread.start()
 
     def pubsub_error(self, desc, data):
@@ -245,7 +242,7 @@ class RuntimeMngr(PubsubHandler):
 
         logger.info(f"Starting module {mod_uuid}.")
 
-        module = Module(module_topic = self.__rt.topics.mio(module_uuid=mod_uuid), **mod)
+        module = Module(self.__rt.topics.mio, **mod)
 
         with self.__modules_lock:
             self.__modules[module.uuid] = MngrModule(module, self.__pubsub_client)

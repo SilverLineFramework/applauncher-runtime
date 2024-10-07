@@ -8,6 +8,7 @@ loglevel: DEBUG
 # runtime settings
 runtime:
   name: arena-rt1
+  namespace: public
   #uuid: # leave blank to generate a new uuid; or set a fixed uuid value
   uuid: cb65196b-0537-4364-939a-87d004babd4c # this would make the runtime have a fixed uuuid
   reg_attempts: 1 # -1 = skip registration; 0 = infinite
@@ -15,13 +16,13 @@ runtime:
   reg_fail_error: false
   max_nmodules: 100
   realm: realm
-  ka_interval_sec: 1
+  ka_interval_sec: 20
   is_orchestration_runtime: false
   tags: ["arena-py", "containerized-modules"] 
 
 # mqtt username and password in .secrets.yaml
 mqtt:
-  host: mqtt.arenaxr.org
+  host: arena0.andrew.cmu.edu
   port: 8883
   ssl: true
 

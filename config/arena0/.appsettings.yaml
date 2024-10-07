@@ -19,7 +19,6 @@ launcher:
       image: slframework/slruntime-python-runner-repo-head
       workdir: /usr/src/app
       monitor_interval_secs: 0.5
-      force_container_name: False  # force container name to match module name
 
       run_opts: # run options
         auto_remove: True

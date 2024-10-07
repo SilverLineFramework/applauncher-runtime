@@ -36,7 +36,7 @@ class Runtime(ModelBase, dict):
             kwargs: arguments to be added as attributes
         """
         self.__rt_msgs = SlMsgs(uuid)
-        self.__topics = topics
+        self.__topics = RuntimeTopics(**topics)
         
         # replace attributes in arguments received
         if attr_replace: 
@@ -69,6 +69,14 @@ class Runtime(ModelBase, dict):
     @name.setter
     def name(self, rt_name):
         self['name'] = rt_name
+
+    @property
+    def namespace(self):
+        return self['namespace']
+
+    @name.setter
+    def namespace(self, rt_ns):
+        self['namespace'] = rt_ns
 
     @property
     def type(self):

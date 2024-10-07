@@ -10,7 +10,7 @@ class RuntimeTopics(ModelBase, dict):
     # if True, only accepts declared attributes at init
     _strict = False
     
-    def __init__(self, attr_replace=None, **config_args):        
+    def __init__(self, attr_replace: dict=None, **config_args):        
         """Intanciate RuntimeTopics  
         Parameters
         ----------
@@ -18,7 +18,6 @@ class RuntimeTopics(ModelBase, dict):
                 e.g. attr_replace = { "id": "uuid"} => means that "id" in kwargs will be replaced by "uuid"
             config_args: topics from config to be added as attributes
         """
-        
         # replace attributes in arguments received
         if attr_replace: 
             self._replace_attrs(config_args, attr_replace)
@@ -54,13 +53,13 @@ class RuntimeTopics(ModelBase, dict):
     def error(self):
         return self['runtimes']
 
-    # module io will have module_uuid, namespaced_scene (passed as argument) replaced during runtime 
+    # module io will have module_uuid, namespaced_scene replaced during runtime 
     @property
-    def mio(self, **kwargs):
-        return self['mio'].format(kwargs)
+    def mio(self):
+        return self['mio']
 
     @mio.setter
-    def mio(self, io, **kwargs):
-        self['mio'] = io.format(kwargs)
+    def mio(self, io):
+        self['mio'] = io
 
     

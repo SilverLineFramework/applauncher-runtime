@@ -6,8 +6,10 @@ Module model; Store information about wasm modules running
 from uuid import uuid4
 import re 
 
+from pubsub import PubsubMessage
 from .model_base import ModelBase
 from .runtime_types import *
+from .sl_msgs import SlMsgs
 
 DFT_NAMESPACE='public'
 DFT_SCENE='default'
@@ -19,7 +21,7 @@ class Module(ModelBase, dict):
     """A dictionary to hold module properties"""
 
     # required attributes
-    _required_attrs = ['uuid', 'name', 'file', 'filetype']
+    _required_attrs = ['uuid', 'name', 'file', 'filetype', 'parent']
     
     # if True, only accepts declared attributes at init
     _strict = False
@@ -30,33 +32,31 @@ class Module(ModelBase, dict):
     # attributes we return for delete requests
     _delete_attrs = ['type', 'uuid', 'name', 'parent']
 
-    def __init__(self, mio_topic=None, uuid=str(uuid4()), attr_replace=None, **kwargs):
+    def __init__(self, mio_topic, uuid=str(uuid4()), attr_replace=None, **kwargs):
         """Intanciate a Module  
         Parameters
         ----------
+            rt_msgs: messages object for confirmation, delete msgs
             mio_topic: Base topic where modules publish/subscribe their stdout, stderr, stdin streams
-                 should have '{namespaced_scene}' to be replaced
+                 should have '{module_uuid}','{namespaced_scene}' to be replaced
             uuid: runtime uuid        
             attr_replace (dict): dictionary of attributes to replace in kwargs
                 e.g. attr_replace = { "id": "uuid"} => means that "id" in kwargs will be replaced by "uuid"
             kwargs: arguments to be added as attributes
         """        
+        self.__mod_msgs = SlMsgs(kwargs.get('parent'));
 
         # scene attribute should be a namespaced scene
-        namespaced_scene = self.__namespaced_scene(
+        ns_scene = self.__namespaced_scene(
             namespaced_scene=kwargs.get('scene'), 
-            kwargs.get('env'))
+            env=kwargs.get('env'))
 
         kwargs['uuid'] = uuid
         kwargs['type'] = MessageType.mod
-        kwargs['scene'] = namespaced_scene
+        kwargs['scene'] = ns_scene
         
-        # define module topics
-        if mio_topic=None:
-            raise InvalidArgument("mio_topic", "Module IO topic is required")
-
-        # we need to replace the namespaced_scene
-        mio_topic = mio_topic.format(namespaced_scene=namespaced_scene)
+        # we need to replace the module_uuid, namespaced_scene
+        mio_topic = mio_topic.format(module_uuid=uuid, namespaced_scene=ns_scene)
         self.__topics =  {
             'mio': mio_topic,
             'stdout': f"{mio_topic}/stdout",
@@ -73,13 +73,13 @@ class Module(ModelBase, dict):
 
         dict.__init__(self, kwargs)
 
-    def __namespaced_scene(namespaced_scene=None, env=None):
-         """
+    def __namespaced_scene(self, namespaced_scene=None, env=None):
+        """
             Attempts to define a namespaced scene from module request attributes:
                - 'scene': if exists and is in the form 'namespace/scene'; if not in valid format, returns default_ns/scene
                - 'env': if 'scene' is not present, searchs for namespace and scene in env parameters
-         """
-        if namespaced_scene:
+        """
+        if namespaced_scene != None:
             valid_scene = re.search("[a-z0-9_-]{3,}\/[a-z0-9_-]{3,}", namespaced_scene, re.IGNORECASE)
             namespaced_scene = f"{DFT_NAMESPACE}/{namespaced_scene}"
             return namespaced_scene
@@ -255,13 +255,13 @@ class Module(ModelBase, dict):
         return { **delete }
 
     def confirm_msg(self, msg_to_confirm) -> PubsubMessage:
-        return self.__rt_msgs.resp(
+        return self.__mod_msgs.resp(
             self.__topics['mio'],
             msg_to_confirm.get('object_id'),
             action=msg_to_confirm.get('action'),
             details=msg_to_confirm.get('data'))
         
     def delete_msg(self) -> PubsubMessage:
-        return self.__rt_msgs.req(self.__topics['mio'], 
+        return self.__mod_msgs.req(self.__topics['mio'], 
                 Action.delete, 
                 self.delete_attrs())        

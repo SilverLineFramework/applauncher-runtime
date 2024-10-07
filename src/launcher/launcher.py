@@ -54,10 +54,13 @@ class LauncherContext():
             ModuleLauncher factory method; gets launcher based on module filetype
         """
 
-        # get launcher settings
-        ls = settings.launcher.get(module.filetype)
-        if not ls:
+        ls = {k:v for (k,v) in settings.launcher.items() if not isinstance(v, dict)}
+
+        # get filetype-specific settings and merge 
+        ft_ls = settings.launcher.get(module.filetype)
+        if not ft_ls:
             raise LauncherException(f"No launcher configured for type {module.filetype}")
+        ls = {**ls, **ft_ls}
 
         # create launcher instance from settings
         logger.debug(f"Importing {ls.get('class')}")

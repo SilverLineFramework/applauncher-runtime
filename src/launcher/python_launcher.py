@@ -11,7 +11,7 @@ will be successful when docker service comes back up; we dont implement
 these retries)
 """
 
-from typing import Dict, Callable
+from typing import Dict, Callable, Iterable
 import json
 from logzero import logger
 from pathlib import Path
@@ -30,7 +30,7 @@ class PythonLauncher(ModuleLauncher):
         (filetype='PY' as mapped in .appsettings.py)
     """
          
-    def __init__(self, launcher_settings: Dict, module: Module, pubsubc: PubsubListner = None) -> None:
+    def __init__(self, launcher_settings: Dict, module: Module, pubsubc: PubsubListner = None, **kwargs) -> None:
         """
             Init a python launcher for a module receiving laucher settings as argument and the module data
             Save info to setup a streamer to publish/subcribe stdin, stdout, stderr of the module
@@ -47,14 +47,14 @@ class PythonLauncher(ModuleLauncher):
         self._settings = launcher_settings
         self._module = module
         self._ctn_sock = None
-        if settings.launcher.pipe_stdout: self._pubsubc = pubsubc
+        if self._settings.get('pipe_stdout'): self._pubsubc = pubsubc
         else: self._pubsubc = None
 
         # create repo builder instance from settings option
         self._file_repo = ClassUtils.class_instance_from_settings_class_path('repository.class', do_cleanup=False)
 
         # get docker client instance
-        self._docker_client = DockerClient(launcher_settings.docker)
+        self._docker_client = DockerClient(**self._settings.get('docker'))
              
     def start_module(self, exit_notify: Callable=None):
         """
@@ -66,11 +66,11 @@ class PythonLauncher(ModuleLauncher):
                 exit_notify:
                     a callable to deliver container exit notification to
         """    
-        # write auth token for arena-py; TODO: auth token should come from request
+        # write auth token for arena-py; TODO: auth token should come from request, dont access settings here
         auth_token_json = json.dumps({ 'username': settings.get('mqtt', {'username': 'nouser'}).get('username', ""), 'token': settings.get('mqtt', {'password': 'nouser'}).get('password', "")})
         self._file_repo.file_from_string_contents(auth_token_json, '.arena_mqtt_auth')
     
-        # get the files from repo url base on module name (this creates a list of files to download)
+        # get the files from repo url base on module name (this creates a list of files to download) TODO: dont access settings here
         self._file_repo.from_module_data(settings.repository.url, self._module)
         
         # get the files into a tmp folder at files_info.path (this acctualy downloads the files)
@@ -80,12 +80,12 @@ class PythonLauncher(ModuleLauncher):
         fnp = Path(self._module.file)
         
         # container cmd should accept the filename and list of arguments (which can be a list or a string) 
-        cmd = [self._settings.cmd, fnp.name] + (self._module.args.split() if isinstance(self._module.args, str) else self._module.args)
+        cmd = [self._settings.get('cmd'), fnp.name] + (self._module.args.split() if isinstance(self._module.args, str) else self._module.args)
     
         # add launcher env entries
-        mod_env = self._module.env
-        if settings.launcher.env:
-            for evar in settings.launcher.env.split(' '): 
+        mod_env = self._module.get('env')
+        if mod_env:
+            for evar in mod_env.split(' '): 
                 mod_env = self.__add_env_var(mod_env, evar)
                     
         # add PROGRAM_OBJECT_ID
@@ -97,15 +97,11 @@ class PythonLauncher(ModuleLauncher):
         start_attached_params = { 
                         'command': cmd,
                         'id': self._module.uuid,
-                        'name': self._module.uuid,
+                        'name': re.sub('[^A-Za-z0-9]+', '', self._module.uuid),
                         'environment': mod_env,
                         'workdir_mount_source': str(self._files_info.path),
                         'exit_notify': exit_notify }
         
-        # add container name if force_container_name is true in launcher settings
-        # contrary to module names, container names are unique so this is mostly for debug purposes (defaults to False)
-        if self._settings.docker.force_container_name: start_attached_params['name'] = re.sub('[^A-Za-z0-9]+', '', self._module.name) 
-
         # start container with stdin, stdout, stderr attached to a socket
         self._ctn_sock = self._docker_client.start_attached(**start_attached_params)
 
@@ -113,7 +109,7 @@ class PythonLauncher(ModuleLauncher):
         if self._pubsubc:
             self._streamer = PubsubStreamer(self._pubsubc, self._ctn_sock, self._module.topics)
                      
-    def __add_env_var(mod_env: Iterable, evar_str: str):
+    def __add_env_var(self, mod_env: Iterable, evar_str: str):
         if isinstance(mod_env, dict):
             evar_splitted = evar_str.split('=')
             if len(evar_splitted) == 2: mod_env[evar_splitted[0]] = evar_splitted[1]

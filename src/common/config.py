@@ -34,10 +34,6 @@ settings = Dynaconf(
         Validator("topics", must_exist=True),
         Validator("topics.runtimes", must_exist=True),
         Validator("topics.modules", must_exist=True),
-        Validator("topics.keepalive", must_exist=True),
-        Validator("topics.io", must_exist=True),
-        Validator("topics.error", must_exist=True),
-        Validator("topics.merror", must_exist=True),
         Validator("topics.mio", must_exist=True),
 
         # repository required settings
