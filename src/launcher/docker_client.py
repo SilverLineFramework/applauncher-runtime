@@ -52,8 +52,8 @@ class DockerClient(QoSParams):
     # attach_socket options: include stdin, stdout, stderr
     _CTN_SOCK_OPTS = {'stdin': 1, 'stdout': 1, 'stderr': 1, 'stream': 1}
     
-    def __init__(self, docker_settings: dict) -> None:
-        self._settings = docker_settings
+    def __init__(self, **kwargs) -> None:
+        self._settings = kwargs
         self._container: docker.DockerClient = {}
         self._stats: Dict[str, float] = {}
         
@@ -215,6 +215,17 @@ class DockerClient(QoSParams):
         
         try:
             self._container.stop()            
+        except docker.errors.NotFound as docker_err:
+            # container might be stopped already
+            raise LauncherException(f"[DockerClient] Container not running!") from docker_err
+            pass 
+
+    def kill(self):
+        if not self._container:
+            raise LauncherException(f"[DockerClient] Container not running!")
+        
+        try:
+            self._container.kill()            
         except docker.errors.NotFound as docker_err:
             # container might be stopped already
             raise LauncherException(f"[DockerClient] Container not running!") from docker_err

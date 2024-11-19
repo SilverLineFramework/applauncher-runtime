@@ -50,9 +50,9 @@ class SlMsgs:
         self.from_id = from_id
         self.attr_mapping = attr_mapping
         
-    def error(self, data):
+    def error(self, topic, data):
         """Error message to stderr topic."""
-        return PubsubMessage(self.topics.stderr, data)
+        return PubsubMessage(topic, data)
 
     def resp(self, topic, src_uuid, action, details, result=Result.ok, convert=False) -> PubsubMessage:
         """Response base message."""

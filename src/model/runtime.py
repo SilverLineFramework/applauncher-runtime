@@ -36,7 +36,7 @@ class Runtime(ModelBase, dict):
             kwargs: arguments to be added as attributes
         """
         self.__rt_msgs = SlMsgs(uuid)
-        self.__topics = topics
+        self.__topics = RuntimeTopics(**topics)
         
         # replace attributes in arguments received
         if attr_replace: 
@@ -69,6 +69,14 @@ class Runtime(ModelBase, dict):
     @name.setter
     def name(self, rt_name):
         self['name'] = rt_name
+
+    @property
+    def namespace(self):
+        return self['namespace']
+
+    @name.setter
+    def namespace(self, rt_ns):
+        self['namespace'] = rt_ns
 
     @property
     def type(self):
@@ -170,24 +178,13 @@ class Runtime(ModelBase, dict):
         """
         # return a view of the object for a register/unregister request
         reg_req = dict(map(lambda k: (k, self.get(k)), self.__reg_attrs))
-        return self.__rt_msgs.req(self.__topics.get('runtimes'), action, reg_req)
+        return self.__rt_msgs.req(self.__topics.runtimes, action, reg_req)
             
     def create_runtime_msg(self) -> PubsubMessage:
         return self._create_delete_runtime_msg(Action.create)
 
     def delete_runtime_msg(self) -> PubsubMessage:
         return self._create_delete_runtime_msg(Action.delete)
-
-    def confirm_module_msg(self, src_msg) -> PubsubMessage:
-        return self.__rt_msgs.resp(
-            self.__topics.modules,
-            src_uuid = src_msg.get('object_id'),
-            action = src_msg.get('action'),
-            details = src_msg.get('data'))
-        
-    def delete_module_msg(self, mod_data) -> PubsubMessage:
-        return self.__rt_msgs.req(
-            self.__topics.modules, Action.delete, mod_data)
 
     def keepalive_msg(self, children) -> PubsubMessage:
         keepalive = dict(map(lambda k: (k, self.get(k)), self.__ka_attrs))

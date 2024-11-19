@@ -33,10 +33,10 @@ def main(args):
     logzero.loglevel(loglevel)
 
     # create runtime mngr instance
-    rtmngr = RuntimeMngr()
+    rtmngr = RuntimeMngr(**settings)
 
     # pass runtime mngr as pubsub handler to mqtt client
-    mqttc = MQTTListner(rtmngr, **settings.get('mqtt'), error_topic=f"{settings.get('topics.io')}/{settings.get('runtime.uuid')}/stderr")
+    mqttc = MQTTListner(rtmngr, **settings.get('mqtt'), error_topic=settings.topics.runtimes)
 
     # some time to init (just so following message does not appear in the middle of init log)
     time.sleep(2)

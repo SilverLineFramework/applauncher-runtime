@@ -5,28 +5,27 @@ class RuntimeTopics(ModelBase, dict):
     """A dictionary to hold runtime topics"""
 
     # required attributes
-    _required_attrs = ['modules', 'runtimes', 'io', 'keepalive']
+    _required_attrs = ['modules', 'runtimes', 'mio']
     
     # if True, only accepts declared attributes at init
     _strict = False
     
-    def __init__(self, attr_replace=None, **kwargs):        
+    def __init__(self, attr_replace: dict=None, **config_args):        
         """Intanciate RuntimeTopics  
         Parameters
         ----------
             attr_replace (dict): dictionary of attributes to replace in kwargs
                 e.g. attr_replace = { "id": "uuid"} => means that "id" in kwargs will be replaced by "uuid"
-            kwargs: arguments to be added as attributes
+            config_args: topics from config to be added as attributes
         """
-        
         # replace attributes in arguments received
         if attr_replace: 
-            self._replace_attrs(kwargs, attr_replace)
+            self._replace_attrs(config_args, attr_replace)
                 
         # check if we have all required properties
-        self._check_attrs(RuntimeTopics, kwargs)
-        
-        dict.__init__(self, kwargs)
+        self._check_attrs(RuntimeTopics, config_args)
+
+        dict.__init__(self, config_args)
 
     @property
     def modules(self):
@@ -37,14 +36,6 @@ class RuntimeTopics(ModelBase, dict):
         self['modules'] = modules
 
     @property
-    def modules_root(self):
-        return self['modules_root']
-
-    @modules_root.setter
-    def modules_root(self, modules_root):
-        self['modules_root'] = modules_root
-
-    @property
     def runtimes(self):
         return self['runtimes']
 
@@ -52,20 +43,23 @@ class RuntimeTopics(ModelBase, dict):
     def runtimes(self, runtimes):
         self['runtimes'] = runtimes
         
-    @property
-    def io(self):
-        return self['io']
-
-    @io.setter
-    def io(self, io):
-        self['io'] = io
-
+    # convenience property; =runtimes
     @property
     def keepalive(self):
-        return self['keepalive']
+        return self['runtimes']
 
-    @keepalive.setter
-    def keepalive(self, keepalive):
-        self['keepalive'] = keepalive
-        
+    # convenience property; =runtimes
+    @property
+    def error(self):
+        return self['runtimes']
+
+    # module io will have module_uuid, namespaced_scene replaced during runtime 
+    @property
+    def mio(self):
+        return self['mio']
+
+    @mio.setter
+    def mio(self, io):
+        self['mio'] = io
+
     

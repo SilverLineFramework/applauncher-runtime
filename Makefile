@@ -1,10 +1,10 @@
-# by default will use settings.yaml, .appsettings.yaml and .secrets.yaml from config folder
+# by default will use settings.yaml, .appsettings.yaml and .secrets.yaml from 'config' folder
 run: venv
 		$(VENV)/python3 src/main.py $(ARGS)
 
-# how to specify a folder for settings inside config 
-# 'make config/settings-folder' will use the settings files in this folder
+# 'make config/settings-folder' will use the settings files in 'config/settings-folder'
 # 'config/settings-folder' should have: settings.yaml, .appsettings.yaml and .secrets.yaml
+# e.g.: 'make config/dev-1' will use the config files from folder 'config/dev-1'
 config/%: venv
 		ROOT_PATH_FOR_DYNACONF="$@" $(VENV)/python3 src/main.py $(ARGS)
 
