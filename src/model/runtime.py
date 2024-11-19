@@ -151,14 +151,6 @@ class Runtime(ModelBase, dict):
         self['apis'] = rt_apis
 
     @property
-    def dft_scene(self):
-        return self['dft_scene']
-
-    @dft_scene.setter
-    def dft_scene(self, rt_dft_scene):
-        self['dft_scene'] = rt_dft_scene
-
-    @property
     def is_orchestration_runtime(self):
         return self['is_orchestration_runtime']
 

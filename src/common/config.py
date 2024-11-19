@@ -23,7 +23,6 @@ settings = Dynaconf(
         Validator("runtime.realm", default="realm"),
         Validator("runtime.is_orchestration_runtime", default=False),
         Validator("runtime.tags", default=[]),
-        Validator("runtime.dft_scene", default="default"),
 
         # gen runtime uuid default value (if empty)
         Validator("runtime.uuid", default=str(uuid.uuid4())),
