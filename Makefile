@@ -12,6 +12,10 @@ config/%: venv
 tests: venv
 		SETTINGS_FILE_FOR_DYNACONF="dev-1/settings.yaml;dev-1/.appsettings.yaml;dev-1/.secrets.yaml" $(VENV)/python3 src/tests/run_tests.py
 
+# by default will use settings.yaml, .appsettings.yaml and .secrets.yaml from 'config' folder
+exec: venv
+		$(VENV)/python3 test-paho.py
+
 test-dockerio: venv
 		$(VENV)/python3 src/tests/test_scripts/test_docker_io.py
 

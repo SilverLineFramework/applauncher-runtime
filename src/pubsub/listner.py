@@ -14,6 +14,7 @@ from common import RuntimeException
 
 from pubsub.pubsub_msg import PubsubMessage
 from pubsub.pubsub import PubsubListner, PubsubHandler
+
 class MQTTListner(paho.Client, PubsubListner):
     """MQTT client class extending mqtt.Client. Implements PubsubListner methods.
 
@@ -37,7 +38,6 @@ class MQTTListner(paho.Client, PubsubListner):
         Client ID for paho MQTT client.
     """
 
-    __topic_dispatcher: Dict[str, Tuple[Any, bool]]
     __subscribe_mid: Dict[int, str]
     
     def __init__(self,
@@ -50,10 +50,9 @@ class MQTTListner(paho.Client, PubsubListner):
                 ssl: bool= False,
                 cid: str= str(uuid.uuid4())) -> None:
 
-        super().__init__(paho.CallbackAPIVersion.VERSION1, cid)
+        super().__init__(paho.CallbackAPIVersion.VERSION2)
 
         self._error_topic = error_topic
-        self.__topic_dispatcher = {}
         self.__subscribe_mid = {}
 
         logger.debug("Starting MQTT client...")
@@ -81,7 +80,7 @@ class MQTTListner(paho.Client, PubsubListner):
         else:
             return handler_call(self.__pubsub_handler, args)
     
-    def on_connect(self, mqttc, userctx, flags, rc) -> None:
+    def on_connect(self, mqttc, userctx, flags, rc, properties) -> None:
         """Client connect callback."""
         if rc == 0:
             logger.debug("Connected.")
@@ -90,17 +89,19 @@ class MQTTListner(paho.Client, PubsubListner):
             logger.error(f"Bad connection returned code={rc}")
 
     def on_message(self, mqttc, userctx, msg) -> None:
-        """MQTT Message handler."""
+        """MQTT Message handler.
+           All runtime messages are handled with callbacks on specific topics
+        """
 
-        res = self.__on_message(msg)
-
-        # only publish if not `None`
-        if res != None:
-            self.message_publish(res)
+        self.message_publish(PubsubMessage(self._error_topic, {"desc": "Invalid topic", "data": msg.topic}))
         
-    def on_subscribe(self, mqttc, obj, mid, granted_qos) -> None:
+    def on_subscribe(self, mqttc, obj, mid, reason_codes, properties) -> None:
         """Subscribe callback."""
         logger.debug(f"Subscribed: {self.__subscribe_mid.get(mid, 'to a topic.')}")
+        for sub_result in reason_codes:
+            # Any reason code >= 128 is a failure.
+            if sub_result >= 128:
+                logger.error(f"MQTT Error: Error subscribing - {sub_result}")
 
     def on_log(self, mqttc, obj, level, string) -> None:
         """Logging callback."""
@@ -130,8 +131,7 @@ class MQTTListner(paho.Client, PubsubListner):
     def message_handler_add(self,
                                 topic: str,
                                 handler: Callable[[PubsubMessage], None],
-                                json_decode: bool=True,
-                                include_subtopics: bool=False
+                                decode_json: bool=True,
                                 ) -> None:
         """
             Subscribes to topic and adds a message handler for messages received;
@@ -141,32 +141,24 @@ class MQTTListner(paho.Client, PubsubListner):
             handler:
                 the handler callback to be used. received a PubsubMessage.
         """
-        subs_topic = topic
-        if include_subtopics:
-            if not topic.endswith('#'):
-                if not topic.endswith('/'):
-                    subs_topic += '/'
-                subs_topic += '#'
-        (result, mid) = self.subscribe(subs_topic)
+        (result, mid) = self.subscribe(topic)
         if result == paho.MQTT_ERR_SUCCESS:
-            self.__subscribe_mid[mid] = subs_topic
-        self.__topic_dispatcher[topic] = (handler, json_decode)
+             self.__subscribe_mid[mid] = topic
+
+        callbk = lambda mqttc, userctx, msg: self.on_message_callback(msg, decode_json, handler)
+        self.message_callback_add(topic, callbk)
 
     def message_handler_remove(self, topic: str) -> None:
         """unsubscribes to topic and removes message handler
             topic:
                 the topic to subscribe
         """
-        found_mid = None
         for mid in self.__subscribe_mid:
-            if self.__subscribe_mid[mid].startswith(topic):
-                found_mid = mid
+            if self.__subscribe_mid[mid] == topic:
+                subs_topic = self.__subscribe_mid.pop(mid, None)
+                self.unsubscribe(subs_topic)
+                self.message_callback_remove(subs_topic)
                 break
-        if found_mid:
-            subs_topic = self.__subscribe_mid.pop(found_mid, None)
-            self.unsubscribe(subs_topic)
-        else: self.unsubscribe(topic)
-        self.__topic_dispatcher.pop(topic, None)
 
     def message_publish(self, pubsub_msg: PubsubMessage) -> None:
         """Publish a message; Called by PubsubHandler
@@ -178,7 +170,7 @@ class MQTTListner(paho.Client, PubsubListner):
         logger.debug(f"Publish msg: {pubsub_msg.topic}: {payload}")
         self.publish(pubsub_msg.topic, payload)
 
-    def __decode_msg(self, msg: PubsubMessage, decode_json: bool) -> PubsubMessage:
+    def __decode_msg(self, msg, decode_json: bool) -> PubsubMessage:
         """Attempt to decode JSON MQTT message."""
         payload = str(msg.payload.decode("utf-8", "ignore"))
         try:
@@ -190,40 +182,38 @@ class MQTTListner(paho.Client, PubsubListner):
             payload = json.loads(payload)
         return PubsubMessage(msg.topic, payload)
 
-    def __on_message(self, msg: PubsubMessage) -> PubsubMessage:
-        """Message handler internals.
+    def on_message_callback(self, msg, decode_json: bool, handler: Callable[[PubsubMessage], None]) -> None:
+        """Callback message handler. 
+           Perform message decoding and deliver it to handler
+        """        
+        res = self.__on_message_callback(msg, decode_json, handler)
+
+        # only publish if not `None`
+        if res != None:
+            self.message_publish(res)
+        
+    def __on_message_callback(self, msg, decode_json, handler: callable) -> PubsubMessage:
+        """Message callback handler internals.
 
         Handlers take a (topic, data) ```Message``` as input, and return either
         a ```Message``` to send in response, ```None``` for no response, or
         raise an ```RuntimeException``` which should be given as a response.
-        """
-        try:
-            (handler, decode_json) = self.__topic_dispatcher.get(msg.topic)
-        except TypeError:
-            return PubsubMessage(self._error_topic,
-                {"desc": "No dispatcher for message on topic", "data": msg.topic})
-            
+        """        
         try:
             decoded_mqtt_msg = self.__decode_msg(msg, decode_json)
         except JSONDecodeError:
             return PubsubMessage(self._error_topic,
                 {"desc": "Invalid JSON", "data": msg.payload.decode('utf-8')})
 
-#        handler = self.__topic_dispatcher.get(decoded_mqtt_msg.topic)
-
-        if callable(handler):
-            try:
-                return self.__pubsub_handler_call(handler, args = (decoded_mqtt_msg))
-            # Runtime Exceptions are raised by handlers in response to
-            # invalid request data (which has been detected).
-            except RuntimeException as rte:
-                return PubsubMessage(self._error_topic, rte.error_msg_payload())
+        try:
+            return self.__pubsub_handler_call(handler, args = (decoded_mqtt_msg))
+        except RuntimeException as rte:
+            return PubsubMessage(self._error_topic, rte.error_msg_payload())
             
-            # Uncaught exceptions should only be due to programmer error.
-            except Exception as e:
-                logger.warning(traceback.format_exc())
-                logger.warning(f"Input message: {str(decoded_mqtt_msg.payload)}")
-                return PubsubMessage(self._error_topic, 
-                    {"desc": "Uncaught exception", "data": str(e)})
-        else:
-            return PubsubMessage(self._error_topic, {"desc": "Invalid topic", "data": msg.topic})
+        # Uncaught exceptions should only be due to programmer error.
+        except Exception as e:
+            logger.warning(traceback.format_exc())
+            logger.warning(f"Input message: {str(decoded_mqtt_msg.payload)}")
+            return PubsubMessage(self._error_topic, 
+                {"desc": "Uncaught exception", "data": str(e)})
+

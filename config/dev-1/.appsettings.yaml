@@ -57,10 +57,10 @@ topics:
   # runtime registration, keepalives, errors
   runtimes: "@format {this.runtime.realm}/g/{this.runtime.namespace}/p/{this.runtime.uuid}"
   # module requests (subscribe only)
-  modules: "@format {this.runtime.realm}/s/+/+/p/+"
+  modules: "@format {this.runtime.realm}/s/+/+/p/+/+"
   # module io: stdin/out/err (error includes runtime-related module errors)
   # namespaced_scene and module_uuid are replaced at runtime
-  mio: "@format {this.runtime.realm}/s/{{namespaced_scene}}/p/{{module_uuid}}"
+  mio: "@format {this.runtime.realm}/s/{{namespaced_scene}}/p/{this.runtime.uuid}/{{module_uuid}}"
 
 # where/how we keep program files
 repository:

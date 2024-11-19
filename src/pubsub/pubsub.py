@@ -26,15 +26,14 @@ class PubsubListner(Protocol):
                                     topic: str,
                                     handler: Callable[[PubsubMessage], None],
                                     json_decode: bool=True,
-                                    include_subtopics: bool=False
                                     ) -> None:
         """Subscribes to topic and adds a message handler for messages received
             topic:
                 the topic to subscribe
             handler:
                 the handler callback to be used. Receives a PubsubMessage.
-            include_subtopics:
-                add a wildcard ('/#' at the end in mqtt) to include subtopics
+            json_decode:
+                decode json message
         """
         raise NotImplementedError
 

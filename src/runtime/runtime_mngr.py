@@ -188,9 +188,10 @@ class RuntimeMngr(PubsubHandler):
             elif action == Action.delete:
                 return self.__delete_module(msg)
             else:
-                raise InvalidArgument('action', action)
+                raise InvalidArgument('action', action, msg)
         else:
-            raise InvalidArgument('type', msg_type)
+            logger.debug(f"\n[Control] {msg.payload['from']} == {self.__rt.uuid}")
+            raise InvalidArgument('type', msg_type, msg)
 
     def module_exists(self, mod_uuid):
         try:
@@ -232,6 +233,7 @@ class RuntimeMngr(PubsubHandler):
         except KeyError:
             raise InvalidArgument("parent", "Parent is required")
 
+        mod['parent'] = self.__rt.uuid # make sure we use uuid from now on
         mod_uuid = mod.get('uuid')
         if mod_uuid: 
             with self.__modules_lock:
