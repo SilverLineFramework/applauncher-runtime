@@ -16,7 +16,7 @@ launcher:
     cmd: '/entrypoint.sh'
     docker: # this launcher uses docker with these options
       # use this image and workdir
-      image: slframework/slruntime-python-runner-repo-head
+      image: slframework/slruntime-python-runner-topic-v5
       workdir: /usr/src/app
       monitor_interval_secs: 0.5
       run_opts: # run options

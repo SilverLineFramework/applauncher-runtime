@@ -84,9 +84,10 @@ class PythonLauncher(ModuleLauncher):
     
         # add launcher env entries
         mod_env = self._module.get('env')
-        if mod_env:
-            for evar in mod_env.split(' '): 
-                mod_env = self.__add_env_var(mod_env, evar)
+        #if mod_env:
+        #    if isinstance(mod_env, dict):
+        #    for evar in mod_env.split(' '): 
+        #        mod_env = self.__add_env_var(mod_env, evar)
                     
         # add PROGRAM_OBJECT_ID
         mod_env = self.__add_env_var(mod_env, f"PROGRAM_OBJECT_ID={self._module.uuid}")

@@ -38,3 +38,5 @@ for folder in */; do
     docker buildx build . --no-cache $PUSH_IMG --platform linux/amd64,linux/arm64/v8  -t $DOCKER_USER/$IMG_NAME:latest -t $DOCKER_USER/$IMG_NAME:$IMG_TAG    
     cd $SCRIPT_DIR
 done
+
+docker buildx rm slctnrbuilder

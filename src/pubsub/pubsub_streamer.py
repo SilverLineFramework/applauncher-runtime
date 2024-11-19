@@ -62,7 +62,7 @@ class PubsubStreamer:
         read_thread.start()
         
         # subscribe to stdin topic and add handler to route messages to socket
-        self._pubsub_client.message_handler_add(self._topics.get(Streams.stdin), self.input, json_decode=False)
+        self._pubsub_client.message_handler_add(self._topics.get(Streams.stdin), self.input, decode_json=False)
                         
     def output(self) -> None:
         """ Read output from socket, publish to mqtt 
