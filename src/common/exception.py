@@ -24,9 +24,11 @@ class MissingField(RuntimeException):
 class InvalidArgument(RuntimeException):
     """Invalid argument."""
 
-    def __init__(self, arg_name, arg_value):
+    def __init__(self, arg_name, arg_value, payload=None):
+        data=arg_value
+        if payload: data=f"{arg_value} in payload: {payload}"
         super().__init__(
-            description="invalid {}".format(arg_name), data=arg_value)
+            description="invalid {}".format(arg_name), data=data)
 
 class NotDeclaredField(RuntimeException):
     """Field is not acceptable by type."""

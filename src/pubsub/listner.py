@@ -132,7 +132,6 @@ class MQTTListner(paho.Client, PubsubListner):
                                 topic: str,
                                 handler: Callable[[PubsubMessage], None],
                                 decode_json: bool=True,
-                                include_subtopics: bool=False
                                 ) -> None:
         """
             Subscribes to topic and adds a message handler for messages received;

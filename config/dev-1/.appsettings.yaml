@@ -16,7 +16,7 @@ launcher:
     cmd: '/entrypoint.sh'
     docker: # this launcher uses docker with these options
       # use this image and workdir
-      image: slframework/slruntime-python-runner-topic-v5
+      image: slframework/slruntime-python-runner-repo-head
       workdir: /usr/src/app
       monitor_interval_secs: 0.5
       run_opts: # run options
@@ -47,6 +47,7 @@ launcher:
 runtime:
   runtime_type: containerized-modules
   apis: "@format {this.launcher.apis}" #apis from launcher config
+  dft_scene: default # default scene name where registration, keepalives, errors go
 
 # Note: 
 # - variables inside single brackets ({}) will be replaced by settings values 
@@ -55,12 +56,12 @@ runtime:
 #   these can be decoded with <str>.format(<var1>=<val1>, <var2>=<val2>)
 topics:
   # runtime registration, keepalives, errors
-  runtimes: "@format {this.runtime.realm}/g/{this.runtime.namespace}/p/{this.runtime.uuid}"
+  runtimes: "@format {this.runtime.realm}/s/{this.runtime.namespace}/{this.runtime.dft_scene}/p/{this.runtime.uuid}"
   # module requests (subscribe only)
   modules: "@format {this.runtime.realm}/s/+/+/p/+"
   # module io: stdin/out/err (error includes runtime-related module errors)
   # namespaced_scene and module_uuid are replaced at runtime
-  mio: "@format {this.runtime.realm}/s/{{namespaced_scene}}/p/{{module_uuid}}"
+  mio: "@format {this.runtime.realm}/s/{{namespaced_scene}}/p/{this.runtime.uuid}/{{module_uuid}}"
 
 # where/how we keep program files
 repository:
