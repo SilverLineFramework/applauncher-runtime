@@ -29,11 +29,12 @@ echo $DOCKER_PASSWD | docker login --username $DOCKER_USER --password-stdin
 # each subfolder is a docker image to be created
 for folder in */; do
     folder=${folder%/} # remove trailing /
-    [ -f "$folder/VERSION" ] && VERSION=$(cat "$folder/VERSION")
+
+    cd $SCRIPT_DIR/$folder
+    VERSION="$(./update_version.sh)"
     IMG_TAG=${VERSION:-latest}
     IMG_NAME="$folder"
 
-    cd $SCRIPT_DIR/$folder
     echo "building: "$IMG_NAME:$IMG_TAG
     docker buildx build . --no-cache $PUSH_IMG --platform linux/amd64,linux/arm64/v8  -t $DOCKER_USER/$IMG_NAME:latest -t $DOCKER_USER/$IMG_NAME:$IMG_TAG    
     cd $SCRIPT_DIR

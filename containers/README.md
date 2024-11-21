@@ -18,4 +18,10 @@ DOCKER_USER=someuser
 DOCKER_PASSWD=somepassword
 ```
 
+## Versions
+
+Each folder has a VERSION file that is used to tag the image and fetch **arena-py**version. This is managed by the `update_version.sh` that updates versions to lastest version from pip/repository commit hash.
+
+## Use in `.appsettings.yaml`
+
 **Then, you can use these containers in the launcher config (`.appsettings.yaml`)**.
