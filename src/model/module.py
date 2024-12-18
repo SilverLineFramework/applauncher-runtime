@@ -58,10 +58,12 @@ class Module(ModelBase, dict):
         # we need to replace the module_uuid, namespaced_scene
         mio_topic = mio_topic.format(module_uuid=uuid, namespaced_scene=ns_scene)
         self.__topics =  {
-            'mio': mio_topic,
-            'stdout': f"{mio_topic}/stdout",
-            'stdin': f"{mio_topic}/stdin",
-            'stderr': f"{mio_topic}/stderr",
+            'mio': mio_topic, # module confirmation
+            # stdout/in/err go to {mio_topic}/-/ to indicate 
+            # messages dont conform to "normal" runtime message formatting
+            'stdout': f"{mio_topic}/-/stdout",
+            'stdin': f"{mio_topic}/-/stdin",
+            'stderr': f"{mio_topic}/-/stderr",
         }
 
         # replace attributes in arguments received
