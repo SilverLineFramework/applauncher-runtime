@@ -39,7 +39,7 @@ jobs:
             chash=${{ github.sha }}
             version=${{ steps.get_release.outputs.tag }}
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/applaucher-runtime, ${{ secrets.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}:${{ steps.get_release.outputs.tag }}
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}:latest, ${{ secrets.DOCKER_HUB_USERNAME }}/${{ github.event.repository.name }}:${{ steps.get_release.outputs.tag }}
       - name: Image digest
         if: ${{ steps.release.outputs.release_created }}
         run: echo ${{ steps.docker_build.outputs.digest }}
