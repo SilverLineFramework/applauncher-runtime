@@ -14,7 +14,7 @@ settings = Dynaconf(
         Validator("loglevel", default="INFO", is_in=["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]),
         
         # runtime required settings
-        Validator("runtime.name", "runtime.uuid", "runtime.runtime_type", "runtime.apis", must_exist=True),
+        Validator("runtime.name", "runtime.runtime_type", "runtime.apis", must_exist=True),
         Validator("runtime.namespace", default='public'),
         Validator("runtime.reg_attempts", default=1),
         Validator("runtime.reg_timeout_seconds", default=5),
