@@ -29,9 +29,11 @@ class RuntimeMngr(PubsubHandler):
         self.__lastwill_msg = None
         self.__conn_event = threading.Event()
         self.__reg_event = threading.Event()
+        self.__init_done_event = threading.Event()
         self.__ka_exit = threading.Event()
         self.__pending_delete_msgs: Dict[str, PubsubMessage] = {} # dictionary messages waiting module exit notification
         self.__exited=False;
+
 
         self.__rt = Runtime(topics=kwargs.get('topics', settings.get('topics')), **kwargs.get('runtime', settings.get('runtime')))
 
@@ -94,7 +96,12 @@ class RuntimeMngr(PubsubHandler):
     def pubsub_error(self, desc, data):
         logger.error(desc, data)
 
-    def wait_reg(self, timeout_secs):
+    def wait_init(self, timeout_secs=15):
+        evt_flag = self.__init_done_event.wait(timeout_secs)
+        if not evt_flag:
+            raise RuntimeException("timeout waiting for init.", f"Runtime init failed after {timeout_secs} secs")
+
+    def __wait_reg(self, timeout_secs=10):
         evt_flag = self.__conn_event.wait(10)
         if not evt_flag:
             raise RuntimeException("timeout waiting for MQTT connection.", "Could not connect.") 
@@ -124,17 +131,16 @@ class RuntimeMngr(PubsubHandler):
            until register event is set"""
 
         reg_count = reg_attempts
+        if reg_attempts == 0: reg_count = -1    
         reg_flag = False
         while True:
-            if reg_count > 0: 
-                logger.info("Runtime attempting to register...");
-                self.__pubsub_client.message_publish(reg_msg)
-                reg_flag = self.wait_reg(timeout_secs)
-                if reg_flag == True: break # event is set; registration response received
-                reg_count = reg_count - 1
-                if reg_count == 0: break
+            logger.info(f"Runtime attempting to register... {reg_count}");
+            self.__pubsub_client.message_publish(reg_msg)
+            reg_flag = self.__wait_reg(timeout_secs)
+            if reg_flag == True: break # event is set; registration response received
+            if reg_count > 0: reg_count = reg_count - 1
+            if reg_count == 0: break
 
-        
         if not reg_flag:
             if reg_fail_error: raise RuntimeException("runtime registration failed.", "Could not register runtime after {} attempts.".format(reg_attempts))
             else: 
@@ -159,7 +165,9 @@ class RuntimeMngr(PubsubHandler):
                 args=(ka_interval_sec,))
             self.__ka_thread.start()
             
-        logger.info("Runtime registration done.")
+        # flag init is done
+        logger.info("Runtime registration done (or skiped).")        
+        self.__init_done_event.set()
                 
     def reg(self, decoded_msg):
         msg_data = decoded_msg.get('data')

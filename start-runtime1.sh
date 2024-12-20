@@ -5,5 +5,7 @@
 docker pull slframework/slruntime-python-runner-repo-head
 docker pull slframework/slruntime-python-runner
 
+./stop-runtime1.sh > /dev/null
+
 TARGET="${1:-arenaxr}"
 screen -L -Logfile slruntime1.log -S slruntime1 -dm bash -c "make config/${TARGET}"

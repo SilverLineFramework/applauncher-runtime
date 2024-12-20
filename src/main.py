@@ -8,6 +8,7 @@ import json
 import logzero
 from logzero import logger
 import time
+from threading import Event
 
 import release
 from common.config import settings
@@ -38,13 +39,17 @@ def main(args):
     # pass runtime mngr as pubsub handler to mqtt client
     mqttc = MQTTListner(rtmngr, **settings.get('mqtt'), error_topic=settings.topics.runtimes)
 
-    # some time to init (just so following message does not appear in the middle of init log)
-    time.sleep(2)
-    
-    while True:
-        choice = input("\nEnter Q to quit.\n")
-        if choice.lower() == "q":
-            break
+    # wait for init to be done
+    rtmngr.wait_init()
+
+    if args.daemon:
+        print("Running as a daemon...")
+        Event().wait()
+    else:
+        while True:
+            choice = input("\nEnter Q to quit.\n")
+            if choice.lower() == "q":
+                break
 
 if __name__ == "__main__":
     """ This is executed when run from the command line """
