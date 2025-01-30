@@ -178,6 +178,7 @@ class RuntimeMngr(PubsubHandler):
         """Handle control messages."""
 
         # ignore messages from ourselfs
+        msg_from = None
         try: 
             msg_from = msg.payload['from']
             if msg_from == self.__rt.uuid:
@@ -198,7 +199,6 @@ class RuntimeMngr(PubsubHandler):
             else:
                 raise InvalidArgument('action', action, msg)
         else:
-            logger.debug(f"\n[Control] {msg.payload['from']} == {self.__rt.uuid}")
             raise InvalidArgument('type', msg_type, msg)
 
     def module_exists(self, mod_uuid):
