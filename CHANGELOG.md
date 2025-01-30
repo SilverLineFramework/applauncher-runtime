@@ -1,4 +1,17 @@
 x# Changelog
+## [1.3.0](https://github.com/SilverLineFramework/applauncher-runtime/compare/v1.2.0...v1.3.0) (2025-01-30)
+
+
+### Features
+
+* add build container script ([e98da71](https://github.com/SilverLineFramework/applauncher-runtime/commit/e98da71c7fb0d7c298dd158bd69f497fa0f400f0))
+* implement daemon behaviour ([6a36187](https://github.com/SilverLineFramework/applauncher-runtime/commit/6a361877b1dd5bd693574fcb989dcdd33a8ae177))
+
+
+### Bug Fixes
+
+* default uuid behaviour ([be7dbcf](https://github.com/SilverLineFramework/applauncher-runtime/commit/be7dbcfa7bd225427dff7d61f1073d0aea969a89))
+
 ## [1.2.0](https://github.com/SilverLineFramework/applauncher-runtime/compare/v1.1.2...v1.2.0) (2024-12-18)
 
 
