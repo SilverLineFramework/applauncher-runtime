@@ -15,11 +15,21 @@ class TestLauncher(unittest.TestCase):
     # fixed module name; some name that does not conflict with ofther containers
     _MOD_NAME = 'pytest-c38285c4ed33'
     
+    # fixed parent uuid so topics are also fixed
+    _RT_UUID = 'b0000000-0000-0000-0000-000000000001'
+
     @classmethod
     def setUpClass(self):
         # instantiate a python module for testing
-        self.module = Module(uuid=self._MOD_UUID, name=self._MOD_NAME, filename='arena/py/pytestenv/pytest.py', filetype='PY')
-        self.mqttc = MQTTListner(pubsub_handler=self, error_topic=settings.topics.io, **settings.get('mqtt'))
+        self.module = Module(
+            settings.topics.mio,
+            uuid=self._MOD_UUID,
+            name=self._MOD_NAME,
+            file='arena/py/pytestenv/pytest.py',
+            filetype='PY',
+            parent=self._RT_UUID,
+        )
+        self.mqttc = MQTTListner(pubsub_handler=self, error_topic=settings.topics.runtimes, **settings.get('mqtt'))
         
         self.pubsub_connected_evt = threading.Event()        
         self.pubsub_out_received_evt = threading.Event()

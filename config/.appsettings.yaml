@@ -28,6 +28,10 @@ launcher:
         cpu_count: 1
         cpu_period: 100000
         cpu_quota: 25000
+    # inactivity detection thresholds
+    inactivity_cpu_threshold_percent: 0.5  # cpu% below this is considered idle
+    inactivity_net_threshold_bytes: 0      # net byte delta at or below this is considered idle
+    inactivity_blkio_threshold_bytes: 0    # disk I/O byte delta at or below this is considered idle
 
   WA: # launcher key
     class: launcher.wasm_launcher.WasmLauncher # instanciate a Launcher-derived class from: module.submodule.Class

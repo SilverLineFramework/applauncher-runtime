@@ -55,6 +55,10 @@ class PythonLauncher(ModuleLauncher):
 
         # get docker client instance
         self._docker_client = DockerClient(**self._settings.get('docker'))
+
+        # previous cumulative counters for activity delta checks; None = first sample not yet taken
+        self._prev_net_bytes = None
+        self._prev_blkio_bytes = None
              
     def start_module(self, exit_notify: Callable=None):
         """
@@ -79,8 +83,13 @@ class PythonLauncher(ModuleLauncher):
         # create a Path object to get program file from last component of file
         fnp = Path(self._module.file)
         
-        # container cmd should accept the filename and list of arguments (which can be a list or a string) 
-        cmd = [self._settings.get('cmd'), fnp.name] + (self._module.args.split() if isinstance(self._module.args, str) else self._module.args)
+        # container cmd should accept the filename and list of arguments (which can be a list or a string)
+        args = self._module.args
+        if isinstance(args, str):
+            args = args.split()
+        elif not args:
+            args = []
+        cmd = [self._settings.get('cmd'), fnp.name] + args
     
         # add launcher env entries
         mod_env = self._module.get('env')
@@ -117,7 +126,7 @@ class PythonLauncher(ModuleLauncher):
         elif isinstance(mod_env, list):
             mod_env.append(evar_str)
         else:
-            logger.warn(f"Module env must be a dictionary or a list; Env '{evar_str}' ignored")
+            logger.warning(f"Module env must be a dictionary or a list; Env '{evar_str}' ignored")
         return mod_env
            
     def get_stats(self) -> ModuleStats:
@@ -137,11 +146,40 @@ class PythonLauncher(ModuleLauncher):
                         )
         
     def is_created_or_running(self) -> bool:
-        return self._docker_client.is_created_or_running()
+        return self._docker_client.is_running()
     
     def get_settings(self) -> Dict:
         return self._settings
     
+    def is_active(self) -> bool:
+        try:
+            stats = self._docker_client.get_stats()
+        except LauncherException:
+            return True  # assume active when stats are unavailable
+
+        net_bytes = stats.get('rx_bytes', 0) + stats.get('tx_bytes', 0)
+        blkio_bytes = stats.get('blkio_bytes', 0)
+
+        # first sample: record baseline and report active so the inactivity clock
+        # doesn't start until we have a real before/after pair
+        if self._prev_net_bytes is None:
+            self._prev_net_bytes = net_bytes
+            self._prev_blkio_bytes = blkio_bytes
+            return True
+
+        cpu_threshold = self._settings.get('inactivity_cpu_threshold_percent', 0.5)
+        net_threshold = self._settings.get('inactivity_net_threshold_bytes', 0)
+        blkio_threshold = self._settings.get('inactivity_blkio_threshold_bytes', 0)
+
+        cpu_active = (stats.get('cpu_percent') or 0) > cpu_threshold
+        net_active = (net_bytes - self._prev_net_bytes) > net_threshold
+        blkio_active = (blkio_bytes - self._prev_blkio_bytes) > blkio_threshold
+
+        self._prev_net_bytes = net_bytes
+        self._prev_blkio_bytes = blkio_bytes
+
+        return cpu_active or net_active or blkio_active
+
     def stop_module(self):
         """Stop module"""
         logger.debug(f"Stopping module {self._module.name}.")

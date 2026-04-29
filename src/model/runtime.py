@@ -3,7 +3,7 @@
 Runtime model; Store information about the runtime
 """
 
-import uuid
+import uuid as _uuid_module
 
 from .model_base import ModelBase
 from .runtime_types import *
@@ -25,7 +25,7 @@ class Runtime(ModelBase, dict):
     # attributes we send in keepalives
     __ka_attrs = ['uuid', 'type', 'name', 'runtime_type', 'max_nmodules', 'apis', 'is_orchestration_runtime', 'tags']
     
-    def __init__(self, topics: RuntimeTopics, uuid: str=str(uuid.uuid4()), attr_replace: dict=None, **kwargs):
+    def __init__(self, topics: RuntimeTopics, uuid: str=None, attr_replace: dict=None, **kwargs):
         """Intanciate a Runtime  
         Parameters
         ----------
@@ -35,6 +35,8 @@ class Runtime(ModelBase, dict):
                 e.g. attr_replace = { "id": "uuid"} => means that "id" in kwargs will be replaced by "uuid"
             kwargs: arguments to be added as attributes
         """
+        if uuid is None:
+            uuid = str(_uuid_module.uuid4())
         self.__rt_msgs = SlMsgs(uuid)
         self.__topics = RuntimeTopics(**topics)
         
@@ -74,7 +76,7 @@ class Runtime(ModelBase, dict):
     def namespace(self):
         return self['namespace']
 
-    @name.setter
+    @namespace.setter
     def namespace(self, rt_ns):
         self['namespace'] = rt_ns
 
@@ -167,6 +169,22 @@ class Runtime(ModelBase, dict):
         self['tags'] = rt_tags
 
     @property
+    def inactivity_timeout_sec(self):
+        return self.get('inactivity_timeout_sec')
+
+    @inactivity_timeout_sec.setter
+    def inactivity_timeout_sec(self, v):
+        self['inactivity_timeout_sec'] = v
+
+    @property
+    def inactivity_check_interval_sec(self):
+        return self.get('inactivity_check_interval_sec')
+
+    @inactivity_check_interval_sec.setter
+    def inactivity_check_interval_sec(self, v):
+        self['inactivity_check_interval_sec'] = v
+
+    @property
     def topics(self):
         return self.__topics
     
@@ -191,5 +209,3 @@ class Runtime(ModelBase, dict):
         # add children
         keepalive['children'] = children
         return self.__rt_msgs.req(self.__topics.keepalive, Action.update, keepalive)
-        
-        pass

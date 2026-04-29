@@ -17,6 +17,8 @@ runtime:
   max_nmodules: 100
   ka_interval_sec: 60
   realm: realm
+  inactivity_timeout_sec: 0  # seconds of inactivity before a module is deleted; 0 = disabled
+  inactivity_check_interval_sec: 30  # how often to check for inactive modules (seconds)
 
 # mqtt username and password in .secrets.yaml, if used 
 # username and password default to "" if not defined in .secrets.yaml

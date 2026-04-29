@@ -32,7 +32,7 @@ class RuntimeMngr(PubsubHandler):
         self.__init_done_event = threading.Event()
         self.__ka_exit = threading.Event()
         self.__pending_delete_msgs: Dict[str, PubsubMessage] = {} # dictionary messages waiting module exit notification
-        self.__exited=False;
+        self.__exited = False
 
 
         self.__rt = Runtime(topics=kwargs.get('topics', settings.get('topics')), **kwargs.get('runtime', settings.get('runtime')))
@@ -54,12 +54,12 @@ class RuntimeMngr(PubsubHandler):
                 mod.stop()
         
         # publish last will before exit
-        if self.__lastwill_msg != None:
+        if self.__lastwill_msg is not None:
             self.__pubsub_client.message_publish(self.__lastwill_msg)
             
         time.sleep(1) # need time to publish
         
-        self.__exited=True;
+        self.__exited = True
 
     def exit(self):
         self.__exit_handler()
@@ -94,7 +94,7 @@ class RuntimeMngr(PubsubHandler):
             self.__reg_thread.start()
 
     def pubsub_error(self, desc, data):
-        logger.error(desc, data)
+        logger.error("%s: %s", desc, data)
 
     def wait_init(self, timeout_secs=15):
         evt_flag = self.__init_done_event.wait(timeout_secs)
@@ -102,12 +102,60 @@ class RuntimeMngr(PubsubHandler):
             raise RuntimeException("timeout waiting for init.", f"Runtime init failed after {timeout_secs} secs")
 
     def __wait_reg(self, timeout_secs=10):
-        evt_flag = self.__conn_event.wait(10)
+        evt_flag = self.__conn_event.wait(timeout_secs)
         if not evt_flag:
             raise RuntimeException("timeout waiting for MQTT connection.", "Could not connect.") 
                  
         evt_flag = self.__reg_event.wait(timeout_secs)
         return evt_flag
+
+    def __inactivity_monitor(self, check_interval_sec, timeout_sec):
+        """Inactivity monitor thread; checks each module for activity and deletes idle ones."""
+        logger.info(f"Starting inactivity monitor (timeout={timeout_sec}s, check_interval={check_interval_sec}s).")
+
+        while True:
+            exit_flag = self.__ka_exit.wait(check_interval_sec)
+            if exit_flag:
+                break
+
+            now = time.time()
+            to_delete = []
+
+            with self.__modules_lock:
+                snapshot = list(self.__modules.items())
+
+            for mod_uuid, mngr_mod in snapshot:
+                try:
+                    active = mngr_mod.module_launcher.is_active()
+                    with self.__modules_lock:
+                        if mod_uuid not in self.__modules:
+                            continue
+                        if active:
+                            mngr_mod.last_active_at = now
+                        elif now - mngr_mod.last_active_at > timeout_sec:
+                            logger.info(f"Module {mod_uuid} inactive for >{timeout_sec}s; scheduling deletion.")
+                            to_delete.append(mod_uuid)
+                except Exception as err:
+                    logger.error(f"InactivityMonitor ({mod_uuid}): {err}")
+
+            for mod_uuid in to_delete:
+                try:
+                    self.__delete_inactive_module(mod_uuid)
+                except Exception as err:
+                    logger.error(f"InactivityMonitor delete ({mod_uuid}): {err}")
+
+    def __delete_inactive_module(self, mod_uuid):
+        """Stop a module that has been idle too long. The exit callback publishes the delete message."""
+        with self.__modules_lock:
+            mngr_mod = self.__modules.get(mod_uuid)
+        if not mngr_mod:
+            return
+
+        logger.info(f"Deleting inactive module {mod_uuid}.")
+        try:
+            mngr_mod.stop()
+        except LauncherException:
+            self.__module_exit(mod_uuid)
 
     def __keepalive(self, ka_interval_secs):
         """Keepalive thread; sends keepalive messages periodically """
@@ -117,9 +165,10 @@ class RuntimeMngr(PubsubHandler):
             exit_flag = self.__ka_exit.wait(ka_interval_secs)
             if exit_flag: break # event is set; exit
             
-            try: 
+            try:
                 with self.__modules_lock:
-                    children = [mngr_mod.module.keepalive_attrs(mngr_mod.module_launcher.get_stats()) for _, mngr_mod in self.__modules.items()]
+                    mngr_mods = list(self.__modules.values())
+                children = [m.module.keepalive_attrs(m.module_launcher.get_stats()) for m in mngr_mods]
                 keepalive_msg = self.__rt.keepalive_msg(children)
                 logger.debug("Sending keepalive.")
                 self.__pubsub_client.message_publish(keepalive_msg) 
@@ -137,7 +186,7 @@ class RuntimeMngr(PubsubHandler):
             logger.info(f"Runtime attempting to register... {reg_count}");
             self.__pubsub_client.message_publish(reg_msg)
             reg_flag = self.__wait_reg(timeout_secs)
-            if reg_flag == True: break # event is set; registration response received
+            if reg_flag: break # event is set; registration response received
             if reg_count > 0: reg_count = reg_count - 1
             if reg_count == 0: break
 
@@ -164,9 +213,18 @@ class RuntimeMngr(PubsubHandler):
             self.__ka_thread = threading.Thread(target=self.__keepalive,
                 args=(ka_interval_sec,))
             self.__ka_thread.start()
-            
+
+        # start inactivity monitor
+        inactivity_timeout_sec = self.__rt.inactivity_timeout_sec
+        inactivity_check_interval_sec = self.__rt.inactivity_check_interval_sec
+        if inactivity_timeout_sec:
+            self.__inactivity_thread = threading.Thread(
+                target=self.__inactivity_monitor,
+                args=(inactivity_check_interval_sec, inactivity_timeout_sec))
+            self.__inactivity_thread.start()
+
         # flag init is done
-        logger.info("Runtime registration done (or skiped).")        
+        logger.info("Runtime registration done (or skiped).")
         self.__init_done_event.set()
                 
     def reg(self, decoded_msg):
@@ -202,12 +260,8 @@ class RuntimeMngr(PubsubHandler):
             raise InvalidArgument('type', msg_type, msg)
 
     def module_exists(self, mod_uuid):
-        try:
-            self.__modules[mod_uuid]
-        except KeyError:
-            return False
-
-        return True
+        with self.__modules_lock:
+            return mod_uuid in self.__modules
 
     def __module_exit(self, mod_uuid):
         logger.debug(f"module {mod_uuid} exited")
@@ -254,10 +308,11 @@ class RuntimeMngr(PubsubHandler):
 
         module = Module(self.__rt.topics.mio, **mod)
 
+        mngr_module = MngrModule(module, self.__pubsub_client)
         with self.__modules_lock:
-            self.__modules[module.uuid] = MngrModule(module, self.__pubsub_client)
-        
-        self.__modules[module.uuid].start(lambda: self.__module_exit(module.uuid))
+            self.__modules[module.uuid] = mngr_module
+
+        mngr_module.start(lambda: self.__module_exit(module.uuid))
 
         # confirm create request
         return module.confirm_msg(create_msg)
@@ -267,7 +322,7 @@ class RuntimeMngr(PubsubHandler):
 
         mod_uuid = delete_msg.get('data').get('uuid')
         if not mod_uuid: 
-            raise MissingField("UIID field missing (trying to delete)")
+            raise MissingField("UUID field missing (trying to delete)")
         
         logger.info(f"Stopping module {mod_uuid}.")
         
@@ -281,7 +336,8 @@ class RuntimeMngr(PubsubHandler):
         try:
             mod_mngr.stop()
         except LauncherException:
-            logger.warn("Module not running.")            
+            logger.warning("Module not running.")
+
             self.__module_exit(mod_mngr.module.uuid)
 
         # save pending delete message to be sent later;
@@ -302,7 +358,8 @@ class MngrModule():
                     a pubsub client object the module streamer uses to publish messages
         """
         self.module = module
-        
+        self.last_active_at = time.time()
+
         # setup launcher, force container name to match module name
         self.module_launcher = LauncherContext.get_launcher_for_module(module, pubsubc=pubsubc)
 

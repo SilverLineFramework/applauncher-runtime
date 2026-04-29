@@ -39,6 +39,13 @@ class ModuleLauncher(Protocol):
         """Return module stats"""
         raise NotImplementedError
 
+    @abstractmethod
+    def is_active(self) -> bool:
+        """Return True if the module shows signs of activity (cpu, network, disk I/O).
+        On the first call after start, return True unconditionally so the inactivity
+        clock doesn't start until at least one real sample has been taken."""
+        raise NotImplementedError
+
     def __str__(self) -> str:
         return str(self.__dict__)
 

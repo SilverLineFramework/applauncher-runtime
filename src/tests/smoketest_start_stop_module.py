@@ -102,10 +102,8 @@ class TestRuntimeMngr(unittest.TestCase):
         
         self.mqttc = MQTTListner(self.rtmngr, **RT_CFG.get('mqtt'))
         
-        # use runtime manager evt to wait for registration
-        evt_flag = self.rtmngr.wait_reg(50) 
-        if not evt_flag:
-            raise Exception("Timeout waiting for registration.")
+        # use runtime manager evt to wait for registration (raises RuntimeException on timeout)
+        self.rtmngr.wait_init(50)
 
         # create the module; this simulates a message received on the control topic
         self.rtmngr.control(self.module_create_msg)

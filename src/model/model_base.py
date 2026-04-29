@@ -39,19 +39,18 @@ class ModelBase(Protocol):
                     err_str = "Property {} is not declared as a valid attribute of {}".format(key, of_class.__name__)
                     raise NotDeclaredField(err_str)
     
-    def _replace_attrs(self, data, attr_replace={}) -> Dict:
-        """Replaces attributes given in attr_replace  
+    def _replace_attrs(self, data: dict, attr_replace: dict=None) -> None:
+        """Replaces keys in-place in data according to attr_replace mapping.
         Parameters
         ----------
-            data (dict): source dictionary
-            attr_replace (dict): dictionary of attributes to replace in data
-                e.g. attr_replace = { "id": "uuid"} => means that "id" in data will be replaced by "uuid"
+            data (dict): source dictionary mutated in place
+            attr_replace (dict): {old_key: new_key} mapping
+                e.g. { "id": "uuid"} renames "id" to "uuid" in data
         """
-        try: 
-            d = dict(data.copy())
-            for key in attr_replace:
-                d[attr_replace[key]] = d.pop(key)
+        if not attr_replace:
+            return
+        try:
+            for old_key, new_key in attr_replace.items():
+                data[new_key] = data.pop(old_key)
         except (KeyError, TypeError) as key_exc:
-            raise MissingField(d) from key_exc
-        
-        return d
+            raise MissingField(str(data)) from key_exc
