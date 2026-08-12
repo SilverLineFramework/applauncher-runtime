@@ -1,4 +1,8 @@
 x# Changelog
+
+### Chores
+- Pin GitHub Actions in CI workflows to exact release tag commit SHAs with inline tag comments for Dependabot SemVer support.
+
 ## [1.2.0](https://github.com/SilverLineFramework/applauncher-runtime/compare/v1.1.2...v1.2.0) (2024-12-18)
 
 
