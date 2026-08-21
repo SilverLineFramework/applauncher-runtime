@@ -3,6 +3,22 @@ x# Changelog
 ### Chores
 - Pin GitHub Actions in CI workflows to exact release tag commit SHAs with inline tag comments for Dependabot SemVer support.
 
+## [1.3.0](https://github.com/SilverLineFramework/applauncher-runtime/compare/v1.2.0...v1.3.0) (2026-08-21)
+
+
+### Features
+
+* add build container script ([e98da71](https://github.com/SilverLineFramework/applauncher-runtime/commit/e98da71c7fb0d7c298dd158bd69f497fa0f400f0))
+* **ci:** align action commit SHAs to exact release tags for Dependabot SemVer support ([70cb6d3](https://github.com/SilverLineFramework/applauncher-runtime/commit/70cb6d3baa653ef778262d12965c73c07a6494c8))
+* **ci:** configure dependabot, pin workflow actions to SHAs, and add agent/contributing docs ([cff7085](https://github.com/SilverLineFramework/applauncher-runtime/commit/cff70855688618ae89af235d534e0abbd31bc560))
+* **ci:** configure dependabot, pin workflow actions to SHAs, and add agent/contributing docs ([3593700](https://github.com/SilverLineFramework/applauncher-runtime/commit/3593700c825074a12159e90a04ee4662903d3cfa))
+* implement daemon behaviour ([6a36187](https://github.com/SilverLineFramework/applauncher-runtime/commit/6a361877b1dd5bd693574fcb989dcdd33a8ae177))
+
+
+### Bug Fixes
+
+* default uuid behaviour ([be7dbcf](https://github.com/SilverLineFramework/applauncher-runtime/commit/be7dbcfa7bd225427dff7d61f1073d0aea969a89))
+
 ## [1.2.0](https://github.com/SilverLineFramework/applauncher-runtime/compare/v1.1.2...v1.2.0) (2024-12-18)
 
 
